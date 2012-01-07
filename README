@@ -1,12 +1,3 @@
 About
 ========
-Object oriented wrapper for 2ch.so JSON-API
-
-Example
-========
-    Fetching threads from /b/ board
-    >>>from api2ch import Api
-    >>>api = Api()
-    >>>api.board = "b"
-    >>>api.get_board()
-    [<Thread: 1>, <Thread: 2>, <Thread: 3>]
+Object oriented wrapper for http://2ch.so JSON-API for Python
