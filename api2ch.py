@@ -2,7 +2,8 @@
 """2ch.so API"""
 __author__ = "d1ffuz0r"
 __version__ = "0.0.1"
-__all__ = ["Api", "Thread", "Post", "Captcha", "Settings", "BOARDS"]
+__all__ = ("Api", "Thread", "Post", "Captcha",
+           "Settings", "BOARDS", "BOARDS_ALL")
 
 import json
 import urllib2
@@ -28,31 +29,18 @@ BOARDS_ALL = listmerge(BOARDS)
 
 class Post(object):
     """Post object"""
+    __rows__ = ("lasthit", "comment", "name", "parent", "timestamp",
+                "banned", "sticky", "height", "width", "num",
+                "video", "tn_height", "closed", "tn_width", "date",
+                "subject", "image", "thumbnail", "op", "size")
+
     def __init__(self, post):
         """
         Create object from dict with post info
         @param post: dict with post info
         """
-        self.lasthit = post[u"lasthit"]
-        self.comment = post[u"comment"]
-        self.name = post[u"name"]
-        self.parent = post[u"parent"]
-        self.timestamp = post[u"timestamp"]
-        self.banned = post[u"banned"]
-        self.sticky = post[u"sticky"]
-        self.height = post[u"height"]
-        self.width = post[u"width"]
-        self.num = post[u"num"]
-        self.video = post[u"video"]
-        self.tn_height = post[u"tn_height"]
-        self.closed = post[u"closed"]
-        self.tn_width = post[u"tn_width"]
-        self.date = post[u"date"]
-        self.subject = post[u"subject"]
-        self.image = post[u"image"]
-        self.thumbnail = post[u"thumbnail"]
-        self.op = post[u"op"]
-        self.size = post[u"size"]
+        for arg in post.keys():
+            self.__setattr__(arg, post[arg])
 
     def __repr__(self):
         return "<Post: {num}>".format(num=self.num)
@@ -109,6 +97,14 @@ class Captcha(object):
 
 class Settings(object):
     """Settings object"""
+    __postfields__ = ("captcha_key", "video", "nofile", "subject", "submit",
+                      "file", "name", "task", "captcha", "email", "comment")
+    __board__ = ("thumb_dir", "shortname", "wakaba_version",
+                 "enable_wakabamark", "imagesize", "favicon", "name",
+                 "charset", "max_comment_length", "enable_bbcode",
+                 "threads_per_page", "img_dir", "page_ext", "image_h",
+                 "image_w", "max_field_lengt", "res_dir",)
+
     def __init__(self, settings):
         """
         Create object from dict with settings info
@@ -119,40 +115,16 @@ class Settings(object):
         self.ban_time = settings[u"ban_time"]
 
         postfields = settings[u"postfields"]
-        self.postfields = {
-            "captcha_key": postfields[u"captcha_key"],
-            "video": postfields[u"video"],
-            "nofile": postfields[u"nofile"],
-            "subject": postfields[u"subject"],
-            "submit": postfields[u"submit"],
-            "file": postfields[u"file"],
-            "name": postfields[u"name"],
-            "task": postfields[u"task"],
-            "captcha": postfields[u"captcha"],
-            "email": postfields[u"email"],
-            "comment": postfields[u"comment"],
-        }
+        self.postfields = {}
+
+        for arg in postfields.keys():
+            self.postfields[arg] = postfields[arg]
 
         board = settings[u"board"]
-        self.board = {
-            "thumb_dir": board[u"thumb_dir"],
-            "shortname": board[u"shortname"],
-            "wakaba_version": board[u"wakaba_version"],
-            "enable_wakabamark": board[u"enable_wakabamark"],
-            "imagesize": board[u"imagesize"],
-            "favicon": board[u"favicon"],
-            "name": board[u"name"],
-            "charset": board[u"charset"],
-            "max_comment_length": board[u"max_comment_length"],
-            "enable_bbcode": board[u"enable_bbcode"],
-            "threads_per_page": board[u"threads_per_page"],
-            "img_dir": board[u"img_dir"],
-            "page_ext": board[u"page_ext"],
-            "image_h": board[u"image_h"],
-            "image_w": board[u"image_w"],
-            "max_field_length": board[u"max_field_length"],
-            "res_dir": board[u"res_dir"],
-        }
+        self.board = {}
+
+        for arg in board.keys():
+            self.board[arg] = board[arg]
 
     def __repr__(self):  # pragma: no cover
         return "<Settings: %s>" % self.board["shortname"]
