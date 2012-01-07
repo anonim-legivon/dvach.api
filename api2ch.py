@@ -1,9 +1,19 @@
+"""2ch.so API"""
+
+__author__ = "d1ffuz0r"
+__version__ = "0.0.1"
+__all__ = ["Api", "Thread", "Post", "Captcha"]
+
 import json
 import urllib2
 
 
 class Post(object):
+    """Post object. make object from dict"""
     def __init__(self, post):
+        """
+        @param post: dict with post info
+        """
         self.lasthit = post[u"lasthit"]
         self.comment = post[u"comment"]
         self.name = post[u"name"]
@@ -30,35 +40,52 @@ class Post(object):
 
 
 class Thread(object):
+    """Thread object"""
     def __init__(self, thread):
+        """
+        @param thread: dict with thread info
+        """
         self.reply_count = int(thread[u"reply_count"])
-        self.posts = [Post(post[0]) for post in thread[u"posts"]]
+        self.posts = Post(thread[u"posts"][0][0])
+        self.num = self.posts.num
 
     def __repr__(self):
-        return "<Thread: {num}>".format(num=self.posts[0].num)
+        return "<Thread: {num}>".format(num=self.num)
+
+
+class Captcha(object):
+    """Captcha object"""
+    def __init__(self, captcha):
+        """
+        @param captcha: dict with captcha info
+        """
+        self.key = captcha[u"key"]
+        self.url = captcha[u"url"]
 
 
 class Api(object):
-    def __init__(self):
-        self.board = None
+    """Api object"""
+    def __init__(self, board=None):
+        """
+        @param board: board code
+        """
+        self.board = board
         self._url = "http://2ch.so/"
 
-    def get_threads(self, board=None):
+    def get_board(self, board=None):
         """
         Get all threads from :board:
         @param board: code of board
-        @return dict: list threads on board
+        @return: list threads on board
         """
         if self.board is None:
             self.board = board
+
         threads = self._get(url="wakaba.json")[u'threads']
+
         return [Thread(thread) for thread in threads]
 
     def _get(self, url):
-        """
-        Get page
-        @param url:
-        """
         if not self.board:
             raise ValueError("Board is not selected")
         else:
@@ -70,7 +97,21 @@ class Api(object):
         """
         Get thread
         @param thread: id of thread
-        @return: dict
+        @return: dict of Posts
         """
+        if isinstance(thread, Thread):
+            thread = thread.num
+
         posts = self._get("res/" + str(thread) + ".json")[u"thread"]
+
         return [Post(post[0]) for post in posts]
+
+    def get_captcha(self):
+        """
+        @return: captcha info
+        """
+        captcha = self._get(self._url +
+                            self.board +
+                            "/wakaba.pl?task=api&code=getcaptcha")
+
+        return Captcha(captcha)
