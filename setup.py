@@ -9,7 +9,7 @@ import api2ch
 
 setup(name="api2ch",
       description="Object oriented wrapper for 2ch.so json-api",
-      long_description=open("README").read(),
+      long_description=open("README.rst").read(),
       author=api2ch.__author__,
       version=api2ch.__version__,
       author_email="d1fffuz0r@gmail.com",
