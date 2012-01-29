@@ -14,7 +14,7 @@ class MyTestCase(unittest.TestCase):
         self.api._url = "file:///" + os.path.join(DIR) + "/"
 
     def test_api(self):
-        self.assertTrue(isinstance(self.api, object))
+        self.assertIsInstance(self.api, object)
 
     def test_set_board(self):
         self.assertEqual(self.api.board, "pr")
@@ -22,8 +22,8 @@ class MyTestCase(unittest.TestCase):
     def test_get_board_true(self):
         threads = self.api.get_board("pr")
         thread = threads[0]
-        self.assertTrue(isinstance(threads, list))
-        self.assertTrue(isinstance(thread, api2ch.Thread))
+        self.assertIsInstance(threads, list)
+        self.assertIsInstance(thread, api2ch.Thread)
         self.assertEqual(thread.__repr__(), "<Thread: 87848>")
 
     def test_get_board_false(self):
@@ -33,16 +33,16 @@ class MyTestCase(unittest.TestCase):
     def test_get_thread_id_true(self):
         posts = self.api.get_thread(87848)
         post = posts[0]
-        self.assertTrue(isinstance(posts, list))
-        self.assertTrue(isinstance(post, api2ch.Post))
+        self.assertIsInstance(posts, list)
+        self.assertIsInstance(post, api2ch.Post)
         self.assertEqual(post.__repr__(), "<Post: 87848>")
 
     def test_get_thread_object_true(self):
         threads = self.api.get_board()
         posts = self.api.get_thread(threads[0])
         post = posts[0]
-        self.assertTrue(isinstance(posts, list))
-        self.assertTrue(isinstance(post, api2ch.Post))
+        self.assertIsInstance(posts, list)
+        self.assertIsInstance(post, api2ch.Post)
         self.assertEqual(post.__repr__(), "<Post: 87848>")
 
     def test_get_capcha(self):
@@ -52,7 +52,7 @@ class MyTestCase(unittest.TestCase):
         api.get_captcha.return_value = api2ch.Captcha(json.load(CAPTH_MOCK_DATA))
         captcha = api.get_captcha()
 
-        self.assertTrue(isinstance(captcha, api2ch.Captcha))
+        self.assertIsInstance(captcha, api2ch.Captcha)
         self.assertIsNotNone(captcha.url)
         self.assertIsNotNone(captcha.key)
 
@@ -63,7 +63,7 @@ class MyTestCase(unittest.TestCase):
         api.get_settings.return_value = api2ch.Settings(json.load(SETT_MOCK_DATA))
         settings = api.get_settings()
 
-        self.assertTrue(isinstance(settings, api2ch.Settings))
+        self.assertIsInstance(settings, api2ch.Settings)
         self.assertIsNotNone(settings.query_interval)
         self.assertIsNotNone(settings.postfields)
 
