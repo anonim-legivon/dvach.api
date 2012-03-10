@@ -11,16 +11,16 @@ from urllib import urlencode
 
 # List sections on board
 BOARDS = {
-    "thematics": ["au", "bi", "biz", "bo", "c", "em", "ew", "fa", "fiz",
+    "thematics": ["au", "gd", "bi", "biz", "bo", "c", "em", "ew", "fa", "fiz",
                   "fl", "hi", "hw", "me", "mlp", "mo", "mu", "ne", "ph",
                   "po", "pr", "psy", "ra", "re", "s", "sf", "sci", "sn",
-                  "sp", "t", "tr", "tv", "un", "w", "wh", "wm"],
-    "creation": ["di", "de", "diy", "f", "pa", "p", "wp", "td"],
-    "games": ["bg", "mc", "mmo", "vg", "wr"],
-    "japanese": ["a", "aa", "fd", "ma", "vn"],
-    "other": ["b", "soc", "r", "abu", "int"],
-    "adults": ["fg", "fur", "g", "ga", "h", "ho", "per", "sex"],
-    "test": ["fag", "rm", "mg", "adv", "ls", "gb", "spc", "to", "tes", "gd"]
+                  "sp", "t", "tr", "tv", "un", "w", "wh", "wm", "mg"],
+    "creation": ["di", "de", "diy", "f", "pa", "p", "wp", "td", "spc"],
+    "games": ["bg", "mc", "mmo", "gb", "vg", "wr", "tes"],
+    "japanese": ["a", "aa", "fd", "ma", "vn", "to"],
+    "other": ["b", "soc", "r", "abu", "int", "fag"],
+    "adults": ["fg", "fur", "g", "ga", "h", "ho", "per", "sex", "ls"],
+    "test": ["rm", "pvc", "trv", "izd", "cg"]
 }
 
 listmerge = lambda s: reduce(lambda d, el: d.extend(el) or d, s, [])
