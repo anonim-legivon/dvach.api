@@ -54,7 +54,7 @@ class ApiTests(unittest.TestCase):
             api = Mock()
             api.get_captcha.return_value = api2ch.Captcha(
                 json.load(CAPTH_MOCK_DATA)
-                )
+            )
             captcha = api.get_captcha()
 
             self.assertIsInstance(captcha, api2ch.Captcha)

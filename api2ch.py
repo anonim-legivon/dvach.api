@@ -247,8 +247,8 @@ class Api(object):
         })
 
         try:
-            print(self._url, self.board)
-            urllib2.urlopen(self._url + self.board + '/wakaba.pl', data=post)
+            url = os.path.join(self._url, self.board, '/wakaba.pl')
+            urlopen(url, data=post)
             return True
         except urllib2.HTTPError as e:
             print('Error send post: {msg}'.format(msg=e))
