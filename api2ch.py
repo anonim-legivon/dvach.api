@@ -10,10 +10,10 @@ __all__ = ('Api', 'Thread', 'Post', 'Captcha',
 import json
 import os
 try:
-    from urllib2 import urlopen
+    from urllib2 import urlopen, HTTPError
     from urllib import urlencode
 except ImportError:
-    from urllib.request import urlopen
+    from urllib.request import urlopen, HTTPError
     from urllib.parse import urlencode
     from functools import reduce
 
@@ -250,7 +250,7 @@ class Api(object):
             url = os.path.join(self._url, self.board, '/wakaba.pl')
             urlopen(url, data=post)
             return True
-        except urllib2.HTTPError as e:
+        except HTTPError as e:
             print('Error send post: {msg}'.format(msg=e))
 
     def __repr__(self):
