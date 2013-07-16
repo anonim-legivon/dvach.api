@@ -11,5 +11,5 @@ dvach.board = "pr"
 threads = dvach.get_board()
 
 # select random thread and fetch posts
-for post in dvach.get_thread(random.choice(threads)):
+for post in dvach.get_thread(random.choice(list(threads))):
     print post
