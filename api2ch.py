@@ -3,7 +3,7 @@
 """2ch.hk API"""
 
 __author__ = 'fadedDexofan, slowpojkee'
-__version__ = '0.0.2'
+__version__ = '0.0.3'
 __all__ = ('Api', 'Thread', 'Post',
            'Settings', 'BOARDS', 'BOARDS_ALL')
 
@@ -46,6 +46,7 @@ class Post(object):
         Create object from dict with post info
         @param post: dict with post info
         """
+        self.num = None
         for key, value in post.items():
             setattr(self, key, value)
 
@@ -111,7 +112,7 @@ class Thread(object):
 #     def __repr__(self):
 #         return '<Captcha: {key}>'.format(key=self.key)
 
-
+# TODO: Вот это надо перепилить. Так просто настройки борды не получить теперь.
 class Settings(object):
     """Settings object"""
     __postfields__ = ('captcha_key', 'video', 'nofile', 'subject', 'submit',
@@ -146,7 +147,7 @@ class Api(object):
 
     def __init__(self, board=None):
         """
-        @param board: board code example( 'b' )
+        @param board: board code example('b')
         """
         self.logging = False
         self.board = board
@@ -158,13 +159,14 @@ class Api(object):
         if board and self.board_exist(board):  # pragma: no cover
             self.settings = self.get_settings()
 
-    def board_exist(self, board):
+    @staticmethod
+    def board_exist(board):
         """
         Checking exist section on board or not
-        @param board: name section. example( 'b' )
+        @param board: name section. example('b')
         @return: boolean
         """
-        return True if board in BOARDS_ALL else False
+        return board in BOARDS_ALL
 
     def get_board(self, board=None):
         """
@@ -216,12 +218,10 @@ class Api(object):
     #     )
     #     self.captcha_key = captcha.key
     #     return captcha
-    #
+
     def get_settings(self):  # pragma: no cover
         """Fetching settings"""
-        self.settings = Settings(
-            self._get('/wakaba.pl?task=api&code=getsettings')
-        )
+        return Settings(self._get('/wakaba.pl?task=api&code=getsettings'))
 
     # def send_post(self, msg):  # pragma: no cover
     #     """
