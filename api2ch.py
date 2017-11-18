@@ -1,14 +1,15 @@
 # -*- coding:utf-8 -*-
 
-"""2ch.so API"""
+"""2ch.hk API"""
 
-__author__ = 'd1ffuz0r'
+__author__ = 'fadedDexofan, slowpojkee'
 __version__ = '0.0.2'
 __all__ = ('Api', 'Thread', 'Post', 'Captcha',
            'Settings', 'BOARDS', 'BOARDS_ALL')
 
 import json
 import os
+
 try:
     from urllib2 import urlopen, HTTPError
     from urllib import urlencode
@@ -16,7 +17,6 @@ except ImportError:
     from urllib.request import urlopen, HTTPError
     from urllib.parse import urlencode
     from functools import reduce
-
 
 # List sections on board
 BOARDS = {
@@ -34,7 +34,6 @@ BOARDS = {
     'adults': ['fg', 'fur', 'g', 'ga', 'h', 'ho', 'per', 'sex'],
     'test': ['gif', 'mov']
 }
-
 
 listmerge = lambda s: reduce(lambda d, el: d.extend(el) or d, s, [])
 BOARDS_ALL = listmerge(BOARDS)
@@ -61,6 +60,7 @@ class Post(object):
 
 class Message(object):
     """Message object"""
+
     def __init__(self, parent='', comment='', subject=''):
         """
         @param parent: parent id (№ OP post)
@@ -87,6 +87,7 @@ class Message(object):
 
 class Thread(object):
     """Thread object"""
+
     def __init__(self, thread):
         """
         Create object from dict with thread info
@@ -102,6 +103,7 @@ class Thread(object):
 
 class Captcha(object):
     """Captcha object"""
+
     def __init__(self, captcha):
         """
         Create object from dict with captcha info
@@ -145,6 +147,7 @@ class Settings(object):
 
 class Api(object):
     """Api object"""
+
     def __init__(self, board=None):
         """
         @param board: board code example( 'b' )
