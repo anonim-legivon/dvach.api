@@ -4,47 +4,42 @@
 
 __author__ = 'fadedDexofan, slowpojkee'
 __version__ = '0.0.2'
-__all__ = ('Api', 'Thread', 'Post', 'Captcha',
+__all__ = ('Api', 'Thread', 'Post',
            'Settings', 'BOARDS', 'BOARDS_ALL')
 
 import json
 import os
+from functools import reduce
 
-try:
-    from urllib2 import urlopen, HTTPError
-    from urllib import urlencode
-except ImportError:
-    from urllib.request import urlopen, HTTPError
-    from urllib.parse import urlencode
-    from functools import reduce
+import requests
 
 # List sections on board
 BOARDS = {
-    'thematics': ['app', 'au', 'bi', 'biz', 'bo', 'c', 'em', 'ew',
-                  'fa', 'fiz', 'fl', 'ftb', 'gd', 'hh', 'hi', 'hw',
-                  'me', 'mg', 'mlp', 'mo', 'mu', 'ne', 'pvc', 'ph',
-                  'po', 'pr', 'psy', 'ra', 're', 's', 'sf', 'sci',
-                  'sn', 'sp', 'spc', 't', 'tr', 'tv', 'un', 'w',
-                  'web', 'wh', 'wm'],
-    'creation': ['di', 'de', 'diy', 'dom', 'f', 'izd', 'mus', 'o',
-                 'pa', 'p', 'wp', 'td'],
-    'games': ['bg ,cg ,gb', 'mc', 'mmo', 'tes', 'vg', 'wr'],
-    'japanese': ['a', 'aa', 'fd', 'ja', 'ma', 'rm', 'to', 'vn'],
-    'other': ['d', 'b', 'fag', 'soc', 'r', 'cp', 'abu', '@', 'int', 'mdk'],
-    'adults': ['fg', 'fur', 'g', 'ga', 'h', 'ho', 'per', 'sex'],
-    'test': ['gif', 'mov']
+    'thematics': ['bi', 'biz', 'bo', 'c', 'em', 'fa', 'fiz', 'fl',
+                  'ftb', 'hi', 'me', 'mg', 'mlp', 'mo', 'ne', 'psy',
+                  're', 'sf', 'sci', 'sn', 'sp', 'spc', 'tv', 'un',
+                  'w', 'wh', 'wm', 'mov', 'rf', 'mu', 'au', 'zog',
+                  'o'],
+    'creation': ['di', 'de', 'diy', 'mus', 'pa', 'p', 'wp', 'wrk'],
+    'tech': ['hw', 'pr', 'ra', 's', 't', 'gd', 'mobi'],
+    'politics': ['po', 'news'],
+    'games': ['bg', 'cg', 'mmo', 'tes', 'vg', 'wr', 'moba', 'v', 'pok', 'ruvn'],
+    'japanese': ['a', 'fd', 'ja', 'ma', 'vn'],
+    'other': ['b', 'd', 'soc', 'r', 'abu', 'media'],
+    'adults': ['fag', 'fg', 'fur', 'gg', 'ga', 'h', 'ho', 'sex', 'fet', 'e', 'hc', 'guro', 'vape'],
+    'user': []  # TODO: Заполнить пользовательские доски
 }
 
-listmerge = lambda s: reduce(lambda d, el: d.extend(el) or d, s, [])
+listmerge = lambda s: reduce(lambda d, el: d.extend(el) or d, s, [])  # TODO: Использовать def, слишком запутанно.
 BOARDS_ALL = listmerge(BOARDS)
 
 
 class Post(object):
     """Post object"""
-    __rows__ = ('lasthit', 'comment', 'name', 'parent', 'timestamp',
-                'banned', 'sticky', 'height', 'width', 'num',
-                'video', 'tn_height', 'closed', 'tn_width', 'date',
-                'subject', 'image', 'thumbnail', 'op', 'size')
+    __rows__ = ('banned', 'closed', 'comment', 'date', 'email',
+                'endless', 'files', 'lasthit', 'name', 'num',
+                'number', 'op', 'parent', 'sticky', 'subject',
+                'tags', 'timestamp', 'trip')
 
     def __init__(self, post):
         """
@@ -58,31 +53,31 @@ class Post(object):
         return '<Post: {num}>'.format(num=self.num)
 
 
-class Message(object):
-    """Message object"""
-
-    def __init__(self, parent='', comment='', subject=''):
-        """
-        @param parent: parent id (№ OP post)
-        @param comment: text your comment
-        @param subject: subject message example( SAGE )
-        @return:
-        """
-        self.captcha_key = ''
-        self.video = ''
-        self.nofile = ''
-        self.subject = subject
-        self.parent = parent
-        self.submit = ''
-        self.file = ''
-        self.name = ''
-        self.task = 'pоst'
-        self.captcha = ''
-        self.email = ''
-        self.comment = comment
-
-    def __repr__(self):
-        return '<Message: "{comment}...">'.format(comment=self.comment[:10])
+# class Message(object):
+#     """Message object"""
+#
+#     def __init__(self, parent='', comment='', subject=''):
+#         """
+#         @param parent: parent id (№ OP post)
+#         @param comment: text your comment
+#         @param subject: subject message example( SAGE )
+#         @return:
+#         """
+#         self.captcha_key = ''
+#         self.video = ''
+#         self.nofile = ''
+#         self.subject = subject
+#         self.parent = parent
+#         self.submit = ''
+#         self.file = ''
+#         self.name = ''
+#         self.task = 'pоst'
+#         self.captcha = ''
+#         self.email = ''
+#         self.comment = comment
+#
+#     def __repr__(self):
+#         return '<Message: "{comment}...">'.format(comment=self.comment[:10])
 
 
 class Thread(object):
@@ -93,27 +88,28 @@ class Thread(object):
         Create object from dict with thread info
         @param thread: dict with thread info
         """
-        self.reply_count = int(thread['reply_count'])
-        self.post = Post(thread['posts'][0][0])
+        self.reply_count = int(thread['posts_count'])
+        # print(thread)
+        self.post = Post(thread)
         self.num = self.post.num
 
     def __repr__(self):
         return '<Thread: {num}>'.format(num=self.num)
 
 
-class Captcha(object):
-    """Captcha object"""
-
-    def __init__(self, captcha):
-        """
-        Create object from dict with captcha info
-        @param captcha: dict with captcha info
-        """
-        self.key = captcha['key']
-        self.url = captcha['url']
-
-    def __repr__(self):
-        return '<Captcha: {key}>'.format(key=self.key)
+# class Captcha(object):
+#     """Captcha object"""
+#
+#     def __init__(self, captcha):
+#         """
+#         Create object from dict with captcha info
+#         @param captcha: dict with captcha info
+#         """
+#         self.key = captcha['key']
+#         self.url = captcha['url']
+#
+#     def __repr__(self):
+#         return '<Captcha: {key}>'.format(key=self.key)
 
 
 class Settings(object):
@@ -154,7 +150,7 @@ class Api(object):
         """
         self.logging = False
         self.board = board
-        self._url = 'http://2ch.hk/'
+        self._url = 'https://2ch.hk/'
         self.settings = None
         self.captcha_key = None
         self.thread = None
@@ -179,7 +175,7 @@ class Api(object):
         if board and self.board_exist(board):  # pragma: no cover
             self.board = board
 
-        threads = self._get(url='wakaba.json')['threads']
+        threads = self._get(url='threads.json')['threads']
 
         return (Thread(thread) for thread in threads)
 
@@ -193,7 +189,7 @@ class Api(object):
             raise ValueError('Board is not selected')
         else:
             url = os.path.join(self._url, self.board, url)
-            js = urlopen(url).read().decode('utf8')
+            js = requests.get(url).text
             return json.loads(js)
 
     def get_thread(self, thread):
@@ -206,55 +202,55 @@ class Api(object):
             thread = thread.num
         self.thread = thread
 
-        posts = self._get('res/' + str(self.thread) + '.json')[u'thread']
+        posts = self._get(f'res/{self.thread}.json')['threads']
+        # print(posts[0]['posts'])
+        return (Post(post) for post in posts[0]['posts'])
 
-        return (Post(post[0]) for post in posts)
-
-    def get_captcha(self):  # pragma: no cover
-        """
-        Fetching captcha
-        @return: captcha info object
-        """
-        captcha = Captcha(
-            self._get('/wakaba.pl?task=api&code=getcaptcha')
-        )
-        self.captcha_key = captcha.key
-        return captcha
-
+    # def get_captcha(self):  # pragma: no cover
+    #     """
+    #     Fetching captcha
+    #     @return: captcha info object
+    #     """
+    #     captcha = Captcha(
+    #         self._get('/wakaba.pl?task=api&code=getcaptcha')
+    #     )
+    #     self.captcha_key = captcha.key
+    #     return captcha
+    #
     def get_settings(self):  # pragma: no cover
         """Fetching settings"""
         self.settings = Settings(
             self._get('/wakaba.pl?task=api&code=getsettings')
         )
 
-    def send_post(self, msg):  # pragma: no cover
-        """
-        Send post
-        @param msg: Post object
-        @return json:
-        """
-        params = self.settings.postfields
-        post = urlencode({
-            'parent': msg.parent,
-            params['captcha_key']: self.captcha_key,
-            params['video']: msg.video,
-            params['nofile']: msg.nofile,
-            params['subject']: msg.subject,
-            params['submit']: msg.submit,
-            params['file']: msg.file,
-            params['name']: msg.name,
-            'task': msg.task,
-            params['captcha']: msg.captcha,
-            params['email']: msg.email,
-            params['comment']: msg.comment
-        })
-
-        try:
-            url = os.path.join(self._url, self.board, '/wakaba.pl')
-            urlopen(url, data=post)
-            return True
-        except HTTPError as e:
-            print('Error send post: {msg}'.format(msg=e))
+    # def send_post(self, msg):  # pragma: no cover
+    #     """
+    #     Send post
+    #     @param msg: Post object
+    #     @return json:
+    #     """
+    #     params = self.settings.postfields
+    #     post = urlencode({
+    #         'parent': msg.parent,
+    #         params['captcha_key']: self.captcha_key,
+    #         params['video']: msg.video,
+    #         params['nofile']: msg.nofile,
+    #         params['subject']: msg.subject,
+    #         params['submit']: msg.submit,
+    #         params['file']: msg.file,
+    #         params['name']: msg.name,
+    #         'task': msg.task,
+    #         params['captcha']: msg.captcha,
+    #         params['email']: msg.email,
+    #         params['comment']: msg.comment
+    #     })
+    #
+    #     try:
+    #         url = os.path.join(self._url, self.board, '/wakaba.pl')
+    #         urlopen(url, data=post)
+    #         return True
+    #     except HTTPError as e:
+    #         print('Error send post: {msg}'.format(msg=e))
 
     def __repr__(self):
         return '<Api: {board}>'.format(board=self.board)
