@@ -53,31 +53,32 @@ class Post(object):
         return '<Post: {num}>'.format(num=self.num)
 
 
-# class Message(object):
-#     """Message object"""
-#
-#     def __init__(self, parent='', comment='', subject=''):
-#         """
-#         :param parent: parent id (№ OP post)
-#         :param comment: text your comment
-#         :param subject: subject message example( SAGE )
-#         :return:
-#         """
-#         self.captcha_key = ''
-#         self.video = ''
-#         self.nofile = ''
-#         self.subject = subject
-#         self.parent = parent
-#         self.submit = ''
-#         self.file = ''
-#         self.name = ''
-#         self.task = 'pоst'
-#         self.captcha = ''
-#         self.email = ''
-#         self.comment = comment
-#
-#     def __repr__(self):
-#         return '<Message: "{comment}...">'.format(comment=self.comment[:10])
+# TODO: Сделать класс сообщения для отправки
+class Message(object):
+    """Message object"""
+
+    def __init__(self, thread='', comment='', subject='', email=''):
+        """
+        :param thread: thread id (№ OP post)
+        :param comment: text your comment
+        :param subject: subject message example( SAGE )
+        :param email: user email
+        """
+        self.captcha_type = '2chaptcha'
+        self.captcha_key = ''
+        self.json = 1
+        self.task = 'post'
+        self.subject = subject
+        self.thread = thread
+        self.submit = ''
+        self.file = ''
+        self.name = ''
+        self.captcha = ''
+        self.email = email
+        self.comment = comment
+
+    def __repr__(self):
+        return '<Message: "{comment}...">'.format(comment=self.comment[:10])
 
 
 class Thread(object):
@@ -107,6 +108,8 @@ class Captcha(object):
         """
         self.id = captcha['id']
         self.type = captcha['type']
+        self.img = f'https://2ch.hk/api/captcha/2chaptcha/image/{self.id}'
+        self.answer = None
 
     def __repr__(self):
         return '<Captcha: {id}>'.format(id=self.id)
@@ -165,7 +168,7 @@ class Api(object):
         self.board = board
         self._url = 'https://2ch.hk/'
         self.settings = None
-        self.captcha_key = None
+        self.captcha_id = None
         self.thread = None
 
         # if board and self.board_exist(board):  # pragma: no cover
@@ -180,9 +183,7 @@ class Api(object):
         if not self.board:
             raise ValueError('Board is not selected')
         else:
-            print(args)
             url = urlbuild(self._url, *args)
-            print(url)
             js = requests.get(url).text
             return json.loads(js)
 
@@ -217,38 +218,61 @@ class Api(object):
     def get_top(self, board=None):
         """
         Get top of threads
-        :param board: 
-        :return: 
+        :param board:
+        :return: top object
         """
         pass
 
-    def get_captcha_settings(self, board=None):
-        pass
+    def get_captcha(self):  # pragma: no cover
+        """
+        Fetching captcha
+        :return: captcha object
+        """
+        captcha = Captcha(
+            self._get('api/captcha/2chaptcha/service_id')
+        )
+        self.captcha_id = captcha.id
+        return captcha
 
-    # def get_captcha(self):  # pragma: no cover
-    #     """
-    #     Fetching captcha
-    #     :return: captcha info object
-    #     """
-    #     captcha = Captcha(
-    #         self._get('/wakaba.pl?task=api&code=getcaptcha')
-    #     )
-    #     self.captcha_key = captcha.key
-    #     return captcha
+    def get_captcha_img(self, captcha):
+        """
+        Get url for captcha image
+        :param captcha: captcha object or captcha id
+        :return: url for captcha image
+        """
+        if isinstance(captcha, Captcha):
+            captcha = captcha.id
+
+        return f'{self._url}api/captcha/2chaptcha/image/{captcha}'
+
+    def set_captcha_answer(self, captcha, value):
+        """
+        Check captcha answer
+        :param captcha: captcha object
+        :param value: captcha answer
+        :return: bool
+        """
+        if self._get(f'api/captcha/2chaptcha/check/{captcha.id}?value={value}')['result'] == 1:
+            captcha.answer = value
+            return True
+        else:
+            raise Exception('Wrong captcha')
 
     # def get_settings(self):  # pragma: no cover
     #     """Fetching settings"""
     #     return Settings(self._get('/wakaba.pl?task=api&code=getsettings'))
 
-    # def send_post(self, msg):  # pragma: no cover
-    #     """
-    #     Send post
-    #     :param msg: Post object
-    #     :return json:
-    #     """
-    #     params = self.settings.postfields
-    #     post = urlencode({
+    # def send_post(self, msg, thread, captcha_answer):  # pragma: no cover
+    #     if isinstance(thread, Thread):
+    #         thread = thread.num
+    #     self.thread = thread
+    #
+    #     post = json.dumps({
+    #         'json': 1,
+    #         'task': 'post',
+    #         'board': self.board,
     #         'parent': msg.parent,
+    #         'thread': thread,
     #         params['captcha_key']: self.captcha_key,
     #         params['video']: msg.video,
     #         params['nofile']: msg.nofile,
@@ -263,10 +287,10 @@ class Api(object):
     #     })
     #
     #     try:
-    #         url = os.path.join(self._url, self.board, '/wakaba.pl')
-    #         urlopen(url, data=post)
+    #         url = urlbuild(self._url, 'makaba/posting.fcgi')
+    #         requests.post(url, data=post)
     #         return True
-    #     except HTTPError as e:
+    #     except requests.HTTPError as e:
     #         print('Error send post: {msg}'.format(msg=e))
 
     @staticmethod
