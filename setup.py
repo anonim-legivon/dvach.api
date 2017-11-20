@@ -25,6 +25,5 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Topic :: Internet :: API',
         'Topic :: Software Development :: Libraries :: Python Modules'
-    ],
-    zip_safe=False
+    ]
 )
