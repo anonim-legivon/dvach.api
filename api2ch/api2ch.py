@@ -279,8 +279,6 @@ class Api(object):
         if board and self.board_exist(board):  # pragma: no cover
             self.board = board
 
-        headers = {'Content-Type': 'multipart/form-data'}
-
         post = {
             'json': 1,
             'task': 'post',
@@ -292,11 +290,11 @@ class Api(object):
             '2chaptcha_id': captcha.id,
             '2chaptcha_value': captcha.answer
         }
-        # TODO: ЗАСТАВЬ ЭТО РАБОТАТЬ
+
         try:
             url = url_join(self._url, 'makaba/posting.fcgi')
             print(post)
-            response = requests.post(url, files=post, headers=headers)
+            response = requests.post(url, data=post, files={'':''})
             return response.json()
         except requests.HTTPError as e:
             print('Error send post: {msg}'.format(msg=e))
