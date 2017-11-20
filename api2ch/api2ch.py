@@ -1,7 +1,7 @@
 """2ch.hk API"""
 
 __author__ = 'anonim-legivon'
-__version__ = '0.0.4.2'
+__version__ = '0.0.5'
 __all__ = ('Api', 'Thread', 'Post', 'Captcha', 'BOARDS', 'BOARDS_ALL')
 
 import json
@@ -267,40 +267,39 @@ class Api(object):
         else:
             raise Exception('Wrong captcha')
 
-    # def get_settings(self):  # pragma: no cover
-    #     """Fetching settings"""
-    #     return Settings(self._get('/wakaba.pl?task=api&code=getsettings'))
+        # def get_settings(self):  # pragma: no cover
+        #     """Fetching settings"""
+        #     return Settings(self._get('/wakaba.pl?task=api&code=getsettings'))
 
-    # def send_post(self, msg, thread, captcha_answer):  # pragma: no cover
-    #     if isinstance(thread, Thread):
-    #         thread = thread.num
-    #     self.thread = thread
-    #
-    #     post = json.dumps({
-    #         'json': 1,
-    #         'task': 'post',
-    #         'board': self.board,
-    #         'parent': msg.parent,
-    #         'thread': thread,
-    #         params['captcha_key']: self.captcha_key,
-    #         params['video']: msg.video,
-    #         params['nofile']: msg.nofile,
-    #         params['subject']: msg.subject,
-    #         params['submit']: msg.submit,
-    #         params['file']: msg.file,
-    #         params['name']: msg.name,
-    #         'task': msg.task,
-    #         params['captcha']: msg.captcha,
-    #         params['email']: msg.email,
-    #         params['comment']: msg.comment
-    #     })
-    #
-    #     try:
-    #         url = urlbuild(self._url, 'makaba/posting.fcgi')
-    #         requests.post(url, data=post)
-    #         return True
-    #     except requests.HTTPError as e:
-    #         print('Error send post: {msg}'.format(msg=e))
+    def send_post(self, board, thread, comment, email, captcha):  # pragma: no cover
+        if isinstance(thread, Thread):
+            thread = thread.num
+        self.thread = thread
+
+        if board and self.board_exist(board):  # pragma: no cover
+            self.board = board
+
+        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+
+        post = {
+            'json': 1,
+            'task': 'post',
+            'board': self.board,
+            'thread': self.thread,
+            'email': email,
+            'comment': comment,
+            'captcha_type': captcha.type,
+            '2chaptcha_id': captcha.id,
+            '2chaptcha_value': captcha.answer
+        }
+        # TODO: ЗАСТАВЬ ЭТО РАБОТАТЬ
+        try:
+            url = url_join(self._url, 'makaba/posting.fcgi')
+            print(post)
+            response = requests.post(url, data=post, headers=headers)
+            return response.json()
+        except requests.HTTPError as e:
+            print('Error send post: {msg}'.format(msg=e))
 
     @staticmethod
     def board_exist(board):
