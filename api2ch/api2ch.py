@@ -1,7 +1,7 @@
 """2ch.hk API"""
 
 __author__ = 'anonim-legivon'
-__version__ = '0.0.4.1'
+__version__ = '0.0.4.2'
 __all__ = ('Api', 'Thread', 'Post', 'Captcha', 'BOARDS', 'BOARDS_ALL')
 
 import json
