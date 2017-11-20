@@ -8,7 +8,7 @@ api2ch for 2ch.hk
 Requirements
 ------------
 
--  Python (3.5, 3.6)
+-  Python (3.4, 3.5, 3.6)
 
 Install
 -------
