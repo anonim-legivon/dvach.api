@@ -2,6 +2,7 @@ api2ch for 2ch.hk
 =================
 
 |License|
+|PYPI|
 |Contribs|
 |Codacy Badge|
 |Shield.io issues|
@@ -79,10 +80,12 @@ License
 Apache License 2.0 - https://www.apache.org/licenses/LICENSE-2.0
 
 .. |License| image:: https://img.shields.io/github/license/mashape/apistatus.svg
-    :target: https://github.com/anonim-legivon/dvach.api
+    :target: https://pypi.python.org/pypi/dvach.api
+.. |PYPI| image:: https://img.shields.io/pypi/v/nine.svg
+    :target: https://pypi.python.org/pypi/dvach.api
 .. |Contribs| image:: https://img.shields.io/github/contributors/cdnjs/cdnjs.svg
-    :target: https://github.com/anonim-legivon/dvach.api
+    :target: https://github.com/anonim-legivon/dvach.api/graphs/contributors
 .. |Codacy Badge| image:: https://api.codacy.com/project/badge/Grade/6d3154f7d4514d10ac95495e0e06965b
     :target: https://www.codacy.com/app/fadedDexofan/dvach.api?utm_source=github.com&utm_medium=referral&utm_content=anonim-legivon/dvach.api&utm_campaign=Badge_Grade
 .. |Shield.io issues| image:: https://img.shields.io/github/issues/badges/shields.svg
-    :target: https://github.com/anonim-legivon/dvach.api
+    :target: https://github.com/anonim-legivon/dvach.api/issues
