@@ -1,4 +1,4 @@
-from api2ch import api2ch
+import api2ch
 api = api2ch.Api('test')
 
 captcha = api.get_captcha()
