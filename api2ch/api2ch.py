@@ -8,7 +8,6 @@ import json
 from posixpath import join as url_join
 
 import requests
-
 from utils import listmerge
 
 # List sections on board
