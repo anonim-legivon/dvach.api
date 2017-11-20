@@ -1,11 +1,11 @@
 """2ch.hk API"""
 
-__author__ = 'fadedDexofan, slowpojkee'
+__author__ = 'fadedDexofan, slowpojkee, d1ffuz0r'
 __version__ = '0.0.3'
-__all__ = ('Api', 'Thread', 'Post', 'BOARDS', 'BOARDS_ALL')
+__all__ = ('Api', 'Thread', 'Post', 'Captcha', 'BOARDS', 'BOARDS_ALL')
 
 import json
-from posixpath import join as urlbuild
+from posixpath import join as url_join
 
 import requests
 
@@ -115,17 +115,6 @@ class Captcha(object):
         return '<Captcha: {id}>'.format(id=self.id)
 
 
-# TODO: Доделать класс Top с топом тредов доски
-class Top(object):
-    """Top object"""
-
-    def __init__(self, board):
-        """
-        Create object from dict with board top
-        :param board:
-        """
-
-
 # TODO: Вот это надо перепилить. Так просто настройки борды не получить теперь.
 # class Settings(object):
 #     """Settings object"""
@@ -183,7 +172,7 @@ class Api(object):
         if not self.board:
             raise ValueError('Board is not selected')
         else:
-            url = urlbuild(self._url, *args)
+            url = url_join(self._url, *args)
             js = requests.get(url).text
             return json.loads(js)
 
@@ -214,14 +203,34 @@ class Api(object):
 
         return (Post(post) for post in posts[0]['posts'])
 
-    # TODO: Доделать класс Top с топом тредов доски
-    def get_top(self, board=None):
+    def get_top(self, board=None, method='views', num=5):
         """
-        Get top of threads
-        :param board:
-        :return: top object
+        Top threads on board
+        :param board: board to get top
+        :param method: sorting method (views, score, posts)
+        :param num: num of threads to return
+        :return: list
         """
-        pass
+        if board and self.board_exist(board):  # pragma: no cover
+            self.board = board
+
+        threads = self._get(self.board, 'threads.json')['threads']
+
+        if method == 'views':
+            threads = sorted(threads, key=lambda thread: (thread['views'], thread['score']), reverse=True)
+        elif method == 'score':
+            threads = sorted(threads, key=lambda thread: (thread['score'], thread['views']), reverse=True)
+        elif method == 'posts':
+            threads = sorted(threads, key=lambda thread: (thread['posts_count'], thread['views']), reverse=True)
+        else:
+            return []
+
+        sorted_threads = []
+
+        for i in range(num):
+            sorted_threads.append(threads[i])
+
+        return sorted_threads
 
     def get_captcha(self):  # pragma: no cover
         """
