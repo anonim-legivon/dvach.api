@@ -5,7 +5,7 @@
 
 ## Requirements
 
-* Python (3.4, 3.5, 3.6)
+* Python (3.5, 3.6)
 
 ## Install
 
