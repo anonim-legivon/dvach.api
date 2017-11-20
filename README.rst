@@ -15,7 +15,7 @@ Install
 
 ::
 
-    pip install api2ch
+    pip install dvach.api
 
 Usage
 -----
