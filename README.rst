@@ -32,7 +32,7 @@ Getting threads on board
     board = api.get_board()
 
     for thread in board:
-    print(f'Num: {thread.num}, Replies: {thread.reply_count}, Post: {thread.post.comment}')
+        print(f'Num: {thread.num}, Replies: {thread.reply_count}, Post: {thread.post.comment}')
 
 Getting posts in thread
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -46,7 +46,7 @@ Getting posts in thread
     thread = api.get_thread(42375)
 
     for post in thread:
-    print(post.comment)
+        print(post.comment)
 
 Getting top of threads on board
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -61,7 +61,7 @@ Getting top of threads on board
     top = api.get_top(board='pr', method='posts', num=10)
 
     for thread in top:
-    print(thread)
+        print(thread)
 
 Bug tracker
 -----------
