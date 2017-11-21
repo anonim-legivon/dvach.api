@@ -75,6 +75,7 @@ class Message(object):
         self.email = email
         self.comment = comment
 
+
     def __repr__(self):
         return '<Message: "{comment}...">'.format(comment=self.comment[:10])
 
@@ -111,6 +112,17 @@ class Captcha(object):
 
     def __repr__(self):
         return '<Captcha: {id}>'.format(id=self.id)
+
+
+class Passcode(object):
+    """Passcode object"""
+
+    def __init__(self, passcode):
+        """
+
+        :param passcode:
+        """
+        pass
 
 
 # TODO: Вот это надо перепилить. Так просто настройки борды не получить теперь.
