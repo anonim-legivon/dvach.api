@@ -75,7 +75,6 @@ class Message(object):
         self.email = email
         self.comment = comment
 
-
     def __repr__(self):
         return '<Message: "{comment}...">'.format(comment=self.comment[:10])
 
@@ -114,6 +113,7 @@ class Captcha(object):
         return '<Captcha: {id}>'.format(id=self.id)
 
 
+# TODO: Прикрутить работу с пасскодом, там нужны куки
 class Passcode(object):
     """Passcode object"""
 

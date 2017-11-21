@@ -1,3 +1,4 @@
+# TODO: Сделать обработчик исключений
 class ChanApiException(Exception):
     pass
 

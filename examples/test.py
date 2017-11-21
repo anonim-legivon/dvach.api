@@ -1,6 +1,8 @@
 import api2ch
-api = api2ch.Api('test')
 
+api = api2ch.Api('b')
+
+thread = api.get_thread(165433076)
 captcha = api.get_captcha()
 print(api.get_captcha_img(captcha))
 value = input('Captcha answer: ')
