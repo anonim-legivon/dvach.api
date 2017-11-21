@@ -1,7 +1,6 @@
 """2ch.hk API"""
 
-__author__ = 'anonim-legivon'
-__version__ = '0.0.5'
+
 __all__ = ('Api', 'Thread', 'Post', 'Captcha', 'BOARDS', 'BOARDS_ALL')
 
 import json
@@ -9,7 +8,7 @@ from posixpath import join as url_join
 
 import requests
 
-from .utils import listmerge
+from api2ch.utils import listmerge
 
 # List sections on board
 BOARDS = {
@@ -294,7 +293,7 @@ class Api(object):
         try:
             url = url_join(self._url, 'makaba/posting.fcgi')
             print(post)
-            response = requests.post(url, data=post, files={'':''})
+            response = requests.post(url, data=post, files={'': ''})
             return response.json()
         except requests.HTTPError as e:
             print('Error send post: {msg}'.format(msg=e))
