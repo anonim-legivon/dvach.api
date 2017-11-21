@@ -51,7 +51,7 @@ class Post(object):
         return '<Post: {num}>'.format(num=self.num)
 
 
-# TODO: Сделать класс сообщения для отправки
+# TODO: Сделать класс сообщения для отправки. Старый код перепилить.
 class Message(object):
     """Message object"""
 
@@ -79,6 +79,7 @@ class Message(object):
         return '<Message: "{comment}...">'.format(comment=self.comment[:10])
 
 
+# TODO: Пересмотреть класс, похоже есть проблемы.
 class Thread(object):
     """Thread object"""
 
@@ -113,7 +114,7 @@ class Captcha(object):
         return '<Captcha: {id}>'.format(id=self.id)
 
 
-# TODO: Прикрутить работу с пасскодом, там нужны куки
+# TODO: Прикрутить работу с пасскодом, там нужны куки.
 class Passcode(object):
     """Passcode object"""
 
@@ -281,6 +282,7 @@ class Api(object):
         #     """Fetching settings"""
         #     return Settings(self._get('/wakaba.pl?task=api&code=getsettings'))
 
+    # TODO: Допилить отправку сообщенийю. Файлы уже передает через files={'image1': open('path', 'rb'), и тд}
     def send_post(self, board, thread, comment, email, captcha):  # pragma: no cover
         if isinstance(thread, Thread):
             thread = thread.num
