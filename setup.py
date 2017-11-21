@@ -9,17 +9,21 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
+requires = ['requests>=2.8.1', ]
+
 setup(
     name='dvach.api',
     version=__version__,
     python_requires='>=3.6',
     packages=['api2ch'],
+    package_data={'': ['LICENSE']},
+    package_dir={'dvach.api': 'api2ch'},
     url='https://github.com/anonim-legivon/dvach.api',
     license='Apache License 2.0',
     author=__author__,
     author_email='fadedDexofan@protonmail.com',
-    py_modules=['api2ch'],
-    install_requires=['requests'],
+    include_package_data=True,
+    install_requires=requires,
     description='Python 2ch.hk API wrapper',
     long_description=long_description,
     keywords='dvach 2ch 2ch.hk api wrapper',
@@ -31,5 +35,6 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Topic :: Internet'
 
-    ]
+    ],
+    zip_safe=False
 )

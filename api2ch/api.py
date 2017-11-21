@@ -1,6 +1,5 @@
 """2ch.hk API"""
 
-
 __all__ = ('Api', 'Thread', 'Post', 'Captcha', 'BOARDS', 'BOARDS_ALL')
 
 import json
