@@ -9,7 +9,7 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
-requires = ['requests>=2.8.1', ]
+requires = ['requests>=2.18.4', ]
 
 setup(
     name='dvach.api',
