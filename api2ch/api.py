@@ -2,7 +2,6 @@
 
 __all__ = ('Api', 'Thread', 'Post', 'Captcha', 'BOARDS', 'BOARDS_ALL')
 
-import json
 from posixpath import join as url_join
 
 import requests
@@ -30,8 +29,26 @@ BOARDS = {
 
 BOARDS_ALL = listmerge(BOARDS)
 
+class Board:
+    """Board object"""
+    __rows__ = ('bump_limit', 'category', 'default_name', 'enable_dices',
+                'enable_flags', 'enable_icons', 'enable_likes',
+                'enable_names', 'enable_oekaki', 'enable_posting',
+                'enable_sage', 'enable_shield', 'enable_subject', 'enable_thread_tags',
+                'enable_trips', 'icons', 'id', 'name', 'pages', 'sage', 'tripcodes')
 
-class Post(object):
+    def __init__(self, settings):
+        """
+        Create object from dict with settings
+        :param settings: dict with settings
+        """
+        for key, value in settings.items():
+            setattr(self, key, value)
+
+    def __repr__(self):  # pragma: no cover
+        return '<Settings: {board}>'.format(board=self.id)
+
+class Post:
     """Post object"""
     __rows__ = ('banned', 'closed', 'comment', 'date', 'email',
                 'endless', 'files', 'lasthit', 'name', 'num',
@@ -51,8 +68,8 @@ class Post(object):
         return '<Post: {num}>'.format(num=self.num)
 
 
-# TODO: Сделать класс сообщения для отправки. Старый код перепилить.
-class Message(object):
+# TODO: Сделать класс сообщения для отправки
+class Message:
     """Message object"""
 
     def __init__(self, thread='', comment='', subject='', email=''):
@@ -79,8 +96,7 @@ class Message(object):
         return '<Message: "{comment}...">'.format(comment=self.comment[:10])
 
 
-# TODO: Пересмотреть класс, похоже есть проблемы.
-class Thread(object):
+class Thread:
     """Thread object"""
 
     def __init__(self, thread):
@@ -97,7 +113,7 @@ class Thread(object):
         return '<Thread: {num}>'.format(num=self.num)
 
 
-class Captcha(object):
+class Captcha:
     """Captcha object"""
 
     def __init__(self, captcha):
@@ -114,7 +130,7 @@ class Captcha(object):
         return '<Captcha: {id}>'.format(id=self.id)
 
 
-# TODO: Прикрутить работу с пасскодом, там нужны куки.
+# TODO: Прикрутить работу с пасскодом, там нужны куки
 class Passcode(object):
     """Passcode object"""
 
@@ -126,47 +142,19 @@ class Passcode(object):
         pass
 
 
-# TODO: Вот это надо перепилить. Так просто настройки борды не получить теперь.
-# class Settings(object):
-#     """Settings object"""
-#     __postfields__ = ('captcha_key', 'video', 'nofile', 'subject', 'submit',
-#                       'file', 'name', 'task', 'captcha', 'email', 'comment')
-#
-#     __board__ = ('bump_limit', 'category', 'default_name',
-#                  'enable_dices', 'enable_flags', 'enable_icons', 'enable_likes',
-#                  'enable_names', 'enable_oekaki', 'enable_posting',
-#                  'enable_sage', 'enable_shield', 'enable_subject', 'enable_thread_tags',
-#                  'enable_trips', 'id', 'name', 'pages', 'sage', 'tripcodes')
-#
-#     def __init__(self, settings):
-#         """
-#         Create object from dict with settings info
-#         :param settings: dict with settings info
-#         """
-#         self.query_interval = settings['query_interval']
-#         self.query_limit = settings['query_limit']
-#         self.ban_time = settings['ban_time']
-#
-#         postfields = settings['postfields']
-#         self.postfields = {key: value for key, value in postfields.items()}
-#
-#         board = settings['board']
-#         self.board = {key: value for key, value in board.items()}
-#
-#     def __repr__(self):  # pragma: no cover
-#         return '<Settings: {board}>'.format(board=self.board['shortname'])
-
-
-class Api(object):
+class Api:
     """Api object"""
+    _boards = {}
 
     def __init__(self, board=None):
         """
         :param board: board code example('b')
         """
-        self.logging = False
-        self.board = board
         self._url = 'https://2ch.hk/'
+        self._get_all_settings() # Подгружаем настройки всех борд, которые дают, дабы не дёргать каждый раз
+        self.logging = False
+        self.__board = None
+        self.board = board
         self.settings = None
         self.captcha_id = None
         self.thread = None
@@ -180,12 +168,31 @@ class Api(object):
         :param url: url for request
         :return: raise or json object
         """
-        if not self.board:
-            raise ValueError('Board is not selected')
+        url = url_join(self._url, *args)
+        try:
+            js = requests.get(url)
+        except Exception as e:
+            print('Something goes wrong:', e)
+            return None
         else:
-            url = url_join(self._url, *args)
-            js = requests.get(url).text
-            return json.loads(js)
+            return js.json()
+
+    @property
+    def board(self):
+        return self.__board
+
+    @board.setter
+    def board(self, board):
+        if board in self._boards.keys():
+            self.__board = self._boards[board]
+        else:
+            self.__board = None
+
+    def _get_all_settings(self):
+        all_settings = self._get('makaba/mobile.fcgi?task=get_boards')
+        for key in all_settings.keys():
+            for settings in all_settings[key]:
+                self._boards[settings['id']] = Board(settings)
 
     def get_board(self, board=None):
         """
@@ -210,7 +217,7 @@ class Api(object):
             thread = thread.num
         self.thread = thread
 
-        posts = self._get(self.board, f'res/{self.thread}.json')['threads']
+        posts = self._get(self.board.id, f'res/{self.thread}.json')['threads']
 
         return (Post(post) for post in posts[0]['posts'])
 
@@ -278,11 +285,6 @@ class Api(object):
         else:
             raise Exception('Wrong captcha')
 
-        # def get_settings(self):  # pragma: no cover
-        #     """Fetching settings"""
-        #     return Settings(self._get('/wakaba.pl?task=api&code=getsettings'))
-
-    # TODO: Допилить отправку сообщенийю. Файлы уже передает через files={'image1': open('path', 'rb'), и тд}
     def send_post(self, board, thread, comment, email, captcha):  # pragma: no cover
         if isinstance(thread, Thread):
             thread = thread.num
@@ -294,7 +296,7 @@ class Api(object):
         post = {
             'json': 1,
             'task': 'post',
-            'board': self.board,
+            'board': self.board.id,
             'thread': self.thread,
             'email': email,
             'comment': comment,
@@ -305,7 +307,6 @@ class Api(object):
 
         try:
             url = url_join(self._url, 'makaba/posting.fcgi')
-            print(post)
             response = requests.post(url, data=post, files={'': ''})
             return response.json()
         except requests.HTTPError as e:
@@ -321,4 +322,4 @@ class Api(object):
         return board in BOARDS_ALL
 
     def __repr__(self):
-        return '<Api: {board}>'.format(board=self.board)
+        return '<Api: {board}>'.format(board=self.board.id)
