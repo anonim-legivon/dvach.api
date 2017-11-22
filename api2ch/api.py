@@ -6,6 +6,7 @@ from posixpath import join as url_join
 
 import requests
 from addict import Dict
+from simplejson import JSONDecodeError
 
 from .utils import listmerge
 
@@ -40,8 +41,7 @@ class ApiSession(requests.Session):
     URL = 'https://2ch.hk/'
 
     def __init__(self, proxies):
-        super().__init__()
-        self.__http = requests.Session
+        super(ApiSession, self).__init__()
         # self.__http.headers.update(self.HEADERS)
         self.proxies = proxies
 
@@ -53,14 +53,15 @@ class ApiSession(requests.Session):
         """
         url = url_join(self.URL, *args)
         try:
-            print(url)
-            response = self.__http.get(self, url=url, proxies=self.proxies)
-            print(response)
+            response = super(ApiSession, self).get(url=url, proxies=self.proxies)
         except Exception as e:
             print('Something goes wrong:', e)
             return None
         else:
-            return Dict(response.json())
+            try:
+                return Dict(response.json())
+            except JSONDecodeError:
+                return response
 
 
 class Board:
@@ -167,7 +168,8 @@ class CaptchaHelper(ApiSession):
         # переменная в которой будет содержаться словарь со значениями ID / captcha image link
         captcha_payload = Dict()
         # получаем ID качи
-        captcha_response = Dict(self._get(f'api/captcha/2chaptcha/service_id').json())
+        captcha_response = Dict(self._get(f'api/captcha/2chaptcha/service_id'))
+        print(captcha_response)
         if captcha_response.result == 1:
             captcha_payload.captcha_id = captcha_response.id
             # получаем изображение капчи
@@ -189,7 +191,7 @@ class CaptchaHelper(ApiSession):
         :return: Возвращает True/False в зависимости от праильности решения
         """
         # check captcha
-        response = Dict(self._get(f'api/captcha/2chaptcha/check/{captcha_id}?value={answer}').json())
+        response = Dict(self._get(f'api/captcha/2chaptcha/check/{captcha_id}?value={answer}'))
 
         # check captcha
         if response.result == 1:
@@ -320,7 +322,7 @@ class Api(ApiSession):
         Метод получает данные капчи (ID + изображение капчи)
         :return: поле captcha_data
         """
-        captcha = CaptchaHelper.get_captcha_img()
+        captcha = CaptchaHelper(self.proxies).get_captcha_img()
 
         # проверка на наличие данных в ответе
         if captcha:
@@ -334,7 +336,7 @@ class Api(ApiSession):
             'task': 'auth',
             'usercode': usercode
         }
-        response = self.__http.post(self, url=url, data=payload)
+        response = self.get(self, url=url, data=payload)
 
         self.passcode_data = response.cookies['usercode_nocaptcha']
 
@@ -348,7 +350,8 @@ class Api(ApiSession):
 
         # отправляем капчу на проверку
         if self.captcha_data:
-            captcha_result = CaptchaHelper.check_captcha(captcha_id=self.captcha_data.captcha_id, answer=captcha_answer)
+            captcha_result = CaptchaHelper(self.proxies).check_captcha(captcha_id=self.captcha_data.captcha_id,
+                                                                       answer=captcha_answer)
 
             # проверка решения капчи
             if captcha_result:
