@@ -1,6 +1,6 @@
 """2ch.hk API"""
 
-__all__ = ('Api', 'Board', 'Thread', 'Post', 'Message', 'Captcha', 'BOARDS', 'BOARDS_ALL', 'URL')
+__all__ = ('Api', 'Board', 'Thread', 'Post', 'Message', 'BOARDS', 'BOARDS_ALL')
 
 from posixpath import join as url_join
 
@@ -30,7 +30,37 @@ BOARDS = {
 
 BOARDS_ALL = listmerge(BOARDS)
 
-URL = 'https://2ch.hk/'
+
+class ApiSession(requests.Session):
+    HEADERS = {
+        'User-agent': 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) '
+                      'Gecko/20100101 Firefox/52.0'
+    }
+
+    URL = 'https://2ch.hk/'
+
+    def __init__(self, proxies):
+        super().__init__()
+        self.__http = requests.Session
+        # self.__http.headers.update(self.HEADERS)
+        self.proxies = proxies
+
+    def _get(self, *args):
+        """
+        Get page
+        :param url: url for request
+        :return: raise or json object
+        """
+        url = url_join(self.URL, *args)
+        try:
+            print(url)
+            response = self.__http.get(self, url=url, proxies=self.proxies)
+            print(response)
+        except Exception as e:
+            print('Something goes wrong:', e)
+            return None
+        else:
+            return Dict(response.json())
 
 
 class Board:
@@ -120,14 +150,16 @@ class Message:
 
 
 # TODO: Допил нужен блед
-class Captcha:
+class CaptchaHelper(ApiSession):
     """
     Класс отвечает за работу с капчёй.
     """
 
+    def __init__(self, proxies):
+        super().__init__(proxies)
+
     # получение изображения капчи
-    @staticmethod
-    def get_captcha_img():
+    def get_captcha_img(self):
         """
         Метод отвечает за получение изображения капчи
         :return: Возвращает словарь с полями содержащими ID капчи и изображение, либо же возбуждается ошибка
@@ -135,11 +167,11 @@ class Captcha:
         # переменная в которой будет содержаться словарь со значениями ID / captcha image link
         captcha_payload = Dict()
         # получаем ID качи
-        captcha_response = Dict(requests.get(f'{URL}api/captcha/2chaptcha/service_id').json())
+        captcha_response = Dict(self._get(f'api/captcha/2chaptcha/service_id').json())
         if captcha_response.result == 1:
             captcha_payload.captcha_id = captcha_response.id
             # получаем изображение капчи
-            captcha_image = requests.get(f'{URL}api/captcha/2chaptcha/image/{captcha_response.id}')
+            captcha_image = self._get(f'api/captcha/2chaptcha/image/{captcha_response.id}')
 
             captcha_payload.captcha_img = captcha_image.content
 
@@ -149,8 +181,7 @@ class Captcha:
             return False
 
     # проверка капчи
-    @staticmethod
-    def check_captcha(captcha_id, answer):
+    def check_captcha(self, captcha_id, answer):
         """
         Метод отвечает за проверку правельности решения капчи
         :param captcha_id: ID капчи из метода get_captcha_img
@@ -158,7 +189,7 @@ class Captcha:
         :return: Возвращает True/False в зависимости от праильности решения
         """
         # check captcha
-        response = Dict(requests.get(f'{URL}api/captcha/2chaptcha/check/{captcha_id}?value={answer}').json())
+        response = Dict(self._get(f'api/captcha/2chaptcha/check/{captcha_id}?value={answer}').json())
 
         # check captcha
         if response.result == 1:
@@ -167,20 +198,23 @@ class Captcha:
             return False
 
 
-class Api:
+class Api(ApiSession):
     """Api object"""
     _boards = {}
 
-    def __init__(self, board=None):
+    def __init__(self, board=None, proxies=None):
         """
         :param board: board id. For example 'b'
         """
-        self.__http = requests.Session()
-        self.__http.headers.update({
-            'User-agent': 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) '
-                          'Gecko/20100101 Firefox/52.0'
-        })
-        self._get_all_settings()  # Подгружаем настройки всех борд, которые дают, дабы не дёргать каждый раз
+        # self.__http = requests.Session()
+        # self.__http.headers.update({
+        #     'User-agent': 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) '
+        #                   'Gecko/20100101 Firefox/52.0'
+        # })
+        # self.proxies = proxies
+        # Подгружаем настройки всех борд, которые дают, дабы не дёргать каждый раз
+        super().__init__(proxies)
+        self._get_all_settings()
         self.logging = False
         self.__board = None
         self.board = board
@@ -188,23 +222,24 @@ class Api:
         self.thread = None
         self.captcha_data = None
         self.passcode_data = None
+
         # if board and self.board_exist(board):  # pragma: no cover
         #     self.settings = self.get_settings()
 
-    def _get(self, *args):
-        """
-        Get page
-        :param url: url for request
-        :return: raise or json object
-        """
-        url = url_join(URL, *args)
-        try:
-            response = self.__http.get(url)
-        except Exception as e:
-            print('Something goes wrong:', e)
-            return None
-        else:
-            return Dict(response.json())
+    # def _get(self, *args):
+    #     """
+    #     Get page
+    #     :param url: url for request
+    #     :return: raise or json object
+    #     """
+    #     url = url_join(URL, *args)
+    #     try:
+    #         response = self.__http.get(url, proxies=self.proxies)
+    #     except Exception as e:
+    #         print('Something goes wrong:', e)
+    #         return None
+    #     else:
+    #         return Dict(response.json())
 
     @property
     def board(self):
@@ -219,6 +254,7 @@ class Api:
 
     def _get_all_settings(self):
         all_settings = self._get('makaba/mobile.fcgi?task=get_boards')
+        print(all_settings)
         for key in all_settings.keys():
             for settings in all_settings[key]:
                 self._boards[settings['id']] = Board(settings)
@@ -282,21 +318,23 @@ class Api:
     def get_captcha(self):  # pragma: no cover
         """
         Метод получает данные капчи (ID + изображение капчи)
-        :return:
+        :return: поле captcha_data
         """
-        captcha = Captcha().get_captcha_img()
+        captcha = CaptchaHelper.get_captcha_img()
 
         # проверка на наличие данных в ответе
         if captcha:
             self.captcha_data = captcha
 
+        return self.captcha_data
+
     def auth_passcode(self, usercode):
-        url = url_join(URL, 'makaba/makaba.fcgi')
+        url = url_join(self.URL, 'makaba/makaba.fcgi')
         payload = {
             'task': 'auth',
             'usercode': usercode
         }
-        response = self.__http.post(url, data=payload)
+        response = self.__http.post(self, url=url, data=payload)
 
         self.passcode_data = response.cookies['usercode_nocaptcha']
 
@@ -310,7 +348,7 @@ class Api:
 
         # отправляем капчу на проверку
         if self.captcha_data:
-            captcha_result = Captcha().check_captcha(captcha_id=self.captcha_data.captcha_id, answer=captcha_answer)
+            captcha_result = CaptchaHelper.check_captcha(captcha_id=self.captcha_data.captcha_id, answer=captcha_answer)
 
             # проверка решения капчи
             if captcha_result:
@@ -327,8 +365,8 @@ class Api:
                 }
 
                 try:
-                    url = url_join(URL, 'makaba/posting.fcgi')
-                    response = self.__http.post(url, data=post, files={'': ''})
+                    url = url_join(self.URL, 'makaba/posting.fcgi')
+                    response = self.__http.post(self, url=url, data=post, files={'': ''}, proxies=self.proxies)
                     return response.json()
                 except requests.HTTPError as e:
                     print('Error send post: {msg}'.format(msg=e))
