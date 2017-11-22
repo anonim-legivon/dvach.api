@@ -10,7 +10,7 @@ thread = api.get_thread(1087578)
 for p in thread:
     print(p.comment)
 
-image_data = api2ch.api.Captcha().get_captcha_img()
+image_data = api2ch.CaptchaHelper().get_captcha_img()
 api.captcha_data = image_data
 
 print(api.captcha_data)
@@ -25,7 +25,8 @@ with open('im.png', 'wb') as out_image:
 
 api.captcha_data.captcha_result = input('Введите решение капчи: ')
 
-answer = api2ch.api.Captcha().check_captcha(captcha_id = api.captcha_data.captcha_id, answer = api.captcha_data.captcha_result)
+answer = api2ch.CaptchaHelper().check_captcha(captcha_id=api.captcha_data.captcha_id,
+                                              answer=api.captcha_data.captcha_result)
 
 print(answer)
 

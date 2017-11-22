@@ -1,6 +1,6 @@
 """2ch.hk API"""
 
-__all__ = ('Api', 'Board', 'Thread', 'Post', 'Message', 'BOARDS', 'BOARDS_ALL')
+__all__ = ('Api', 'Board', 'Thread', 'Post', 'Message', 'CaptchaHelper', 'BOARDS', 'BOARDS_ALL')
 
 from posixpath import join as url_join
 
@@ -31,14 +31,14 @@ BOARDS = {
 
 BOARDS_ALL = listmerge(BOARDS)
 
+URL = 'https://2ch.hk/'
+
 
 class ApiSession(requests.Session):
     HEADERS = {
         'User-agent': 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) '
                       'Gecko/20100101 Firefox/52.0'
     }
-
-    URL = 'https://2ch.hk/'
 
     def __init__(self, proxies):
         super(ApiSession, self).__init__()
@@ -51,7 +51,7 @@ class ApiSession(requests.Session):
         :param url: url for request
         :return: raise or json object
         """
-        url = url_join(self.URL, *args)
+        url = url_join(URL, *args)
         try:
             response = super(ApiSession, self).get(url=url, proxies=self.proxies)
         except Exception as e:
@@ -64,7 +64,7 @@ class ApiSession(requests.Session):
                 return response
 
     def _post(self, **kwargs):
-        url = url_join(self.URL, kwargs['url'])
+        url = url_join(URL, kwargs['url'])
         try:
             response = super(ApiSession, self).post(url=url, data=kwargs['data'], files=kwargs['files'],
                                                     proxies=self.proxies)
@@ -170,7 +170,7 @@ class CaptchaHelper(ApiSession):
     Класс отвечает за работу с капчёй.
     """
 
-    def __init__(self, proxies):
+    def __init__(self, proxies=None):
         super().__init__(proxies)
 
     # получение изображения капчи
@@ -230,7 +230,6 @@ class Api(ApiSession):
         self.thread = None
         self.captcha_data = None
         self.passcode_data = None
-
 
     @property
     def board(self):
