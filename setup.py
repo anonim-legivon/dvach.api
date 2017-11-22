@@ -34,7 +34,6 @@ setup(
         'Programming Language :: Python :: 3.6',
         'License :: OSI Approved :: Apache Software License',
         'Topic :: Internet'
-
     ],
     zip_safe=False
 )

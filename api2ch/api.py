@@ -1,6 +1,6 @@
 """2ch.hk API"""
 
-__all__ = ('Api', 'Thread', 'Post', 'Captcha', 'BOARDS', 'BOARDS_ALL')
+__all__ = ('Api', 'Board', 'Thread', 'Post', 'Message', 'Captcha', 'BOARDS', 'BOARDS_ALL', 'URL')
 
 from posixpath import join as url_join
 
@@ -32,6 +32,7 @@ BOARDS_ALL = listmerge(BOARDS)
 
 URL = 'https://2ch.hk/'
 
+
 class Board:
     """Board object"""
     __rows__ = ('bump_limit', 'category', 'default_name', 'enable_dices',
@@ -45,11 +46,30 @@ class Board:
         Create object from dict with settings
         :param settings: dict with settings
         """
+        self.id = None
         for key, value in settings.items():
             setattr(self, key, value)
 
     def __repr__(self):  # pragma: no cover
         return '<Settings: {board}>'.format(board=self.id)
+
+
+class Thread:
+    """Thread object"""
+
+    def __init__(self, thread):
+        """
+        Create object from dict with thread info
+        :param thread: dict with thread info
+        """
+        self.reply_count = int(thread['posts_count'])
+        # print(thread)
+        self.post = Post(thread)
+        self.num = self.post.num
+
+    def __repr__(self):
+        return '<Thread: {num}>'.format(num=self.num)
+
 
 class Post:
     """Post object"""
@@ -99,42 +119,26 @@ class Message:
         return '<Message: "{comment}...">'.format(comment=self.comment[:10])
 
 
-class Thread:
-    """Thread object"""
-
-    def __init__(self, thread):
-        """
-        Create object from dict with thread info
-        :param thread: dict with thread info
-        """
-        self.reply_count = int(thread['posts_count'])
-        # print(thread)
-        self.post = Post(thread)
-        self.num = self.post.num
-
-    def __repr__(self):
-        return '<Thread: {num}>'.format(num=self.num)
-
-
+# TODO: Допил нужен блед
 class Captcha:
-    '''
+    """
     Класс отвечает за работу с капчёй.
-    '''
+    """
 
     # получение изображения капчи
-    def get_captcha_img(self):
-        '''
+    def get_captcha_img(self, url):
+        """
         Метод отвечает за получение изображения капчи
         :return: Возвращает словарь с полями содержащими ID капчи и изображение, либо же возбуждается ошибка
-        '''
+        """
         # переменная в которой будет содержаться словарь со значениями ID / captcha image link
         captcha_payload = Dict()
         # получаем ID качи
-        captcha_response = requests.get(f'{URL}api/captcha/2chaptcha/service_id').json()
-        if captcha_response['result'] == 1:
-            captcha_payload.captcha_id = captcha_response["id"]
+        captcha_response = Dict(requests.get(f'{url}api/captcha/2chaptcha/service_id').json())
+        if captcha_response.result == 1:
+            captcha_payload.captcha_id = captcha_response.id
             # получаем изображение капчи
-            captcha_image = requests.get(f'{URL}api/captcha/2chaptcha/image/{captcha_response["id"]}')
+            captcha_image = requests.get(f'{url}api/captcha/2chaptcha/image/{captcha_response.id}')
 
             captcha_payload.captcha_img = captcha_image.content
 
@@ -145,12 +149,12 @@ class Captcha:
 
     # проверка капчи
     def check_captcha(self, captcha_id, answer):
-        '''
+        """
         Метод отвечает за проверку правельности решения капчи
         :param captcha_id: ID капчи из метода get_captcha_img
         :param answer: Ответ пользователя на капчу
         :return: Возвращает True/False в зависимости от праильности решения
-        '''
+        """
         # check captcha
         result = requests.get(f'{URL}api/captcha/2chaptcha/check/{captcha_id}?value={answer}')
 
@@ -165,15 +169,15 @@ class Captcha:
 
 
 # TODO: Прикрутить работу с пасскодом, там нужны куки
-class Passcode(object):
-    """Passcode object"""
-
-    def __init__(self, passcode):
-        """
-
-        :param passcode:
-        """
-        pass
+# class Passcode(object):
+#     """Passcode object"""
+#
+#     def __init__(self, passcode):
+#         """
+#
+#         :param passcode:
+#         """
+#         pass
 
 
 class Api:
@@ -182,17 +186,21 @@ class Api:
 
     def __init__(self, board=None):
         """
-        :param board: board code example('b')
+        :param board: board id. For example 'b'
         """
         self._url = 'https://2ch.hk/'
-        self._get_all_settings() # Подгружаем настройки всех борд, которые дают, дабы не дёргать каждый раз
+        self.http = requests.Session()
+        self.http.headers.update({
+            'User-agent': 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) '
+                          'Gecko/20100101 Firefox/52.0'
+        })
+        self._get_all_settings()  # Подгружаем настройки всех борд, которые дают, дабы не дёргать каждый раз
         self.logging = False
         self.__board = None
         self.board = board
         self.settings = None
         self.thread = None
         self.captcha_data = None
-
         # if board and self.board_exist(board):  # pragma: no cover
         #     self.settings = self.get_settings()
 
@@ -204,12 +212,12 @@ class Api:
         """
         url = url_join(self._url, *args)
         try:
-            js = requests.get(url)
+            response = self.http.get(url)
         except Exception as e:
             print('Something goes wrong:', e)
             return None
         else:
-            return js.json()
+            return Dict(response.json())
 
     @property
     def board(self):
@@ -237,7 +245,7 @@ class Api:
         if board and self.board_exist(board):  # pragma: no cover
             self.board = board
 
-        threads = self._get(self.board, 'threads.json')['threads']
+        threads = self._get(self.board, 'threads.json').threads
 
         return (Thread(thread) for thread in threads)
 
@@ -251,9 +259,9 @@ class Api:
             thread = thread.num
         self.thread = thread
 
-        posts = self._get(self.board.id, f'res/{self.thread}.json')['threads']
+        posts = self._get(self.board.id, f'res/{self.thread}.json').threads
 
-        return (Post(post) for post in posts[0]['posts'])
+        return (Post(post) for post in posts[0].posts)
 
     def get_top(self, board=None, method='views', num=5):
         """
@@ -266,7 +274,7 @@ class Api:
         if board and self.board_exist(board):  # pragma: no cover
             self.board = board
 
-        threads = self._get(self.board, 'threads.json')['threads']
+        threads = self._get(self.board, 'threads.json').threads
 
         if method == 'views':
             threads = sorted(threads, key=lambda thread: (thread['views'], thread['score']), reverse=True)
@@ -285,11 +293,11 @@ class Api:
         return sorted_threads
 
     def get_captcha(self):  # pragma: no cover
-        '''
-        Метод получает данные капчи(ID + изображение капчи)
+        """
+        Метод получает данные капчи (ID + изображение капчи)
         :return:
-        '''
-        captcha = Captcha().get_captcha_img()
+        """
+        captcha = Captcha().get_captcha_img(self._url)
 
         # проверка на наличие данных в ответе
         if captcha:
@@ -305,7 +313,7 @@ class Api:
 
         # отправляем капчу на проверку
         if self.captcha_data:
-            captcha_result = Captcha().check_captcha(captcha_id = self.captcha_data.captcha_id, answer = captcha_answer)
+            captcha_result = Captcha().check_captcha(captcha_id=self.captcha_data.captcha_id, answer=captcha_answer)
 
             # проверка решения капчи
             if captcha_result:
@@ -323,7 +331,7 @@ class Api:
 
                 try:
                     url = url_join(self._url, 'makaba/posting.fcgi')
-                    response = requests.post(url, data=post, files={'': ''})
+                    response = self.http.post(url, data=post, files={'': ''})
                     return response.json()
                 except requests.HTTPError as e:
                     print('Error send post: {msg}'.format(msg=e))
@@ -338,4 +346,4 @@ class Api:
         return board in BOARDS_ALL
 
     def __repr__(self):
-        return '<Api: {board}>'.format(board=self.board.id)
+        return '<Api: {board}>'.format(board=self.board)
