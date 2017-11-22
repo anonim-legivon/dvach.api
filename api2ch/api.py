@@ -63,6 +63,20 @@ class ApiSession(requests.Session):
             except JSONDecodeError:
                 return response
 
+    def _post(self, **kwargs):
+        url = url_join(self.URL, kwargs['url'])
+        try:
+            response = super(ApiSession, self).post(url=url, data=kwargs['data'], files=kwargs['files'],
+                                                    proxies=self.proxies)
+        except Exception as e:
+            print('Something goes wrong:', e)
+            return None
+        else:
+            try:
+                return Dict(response.json())
+            except JSONDecodeError:
+                return response
+
 
 class Board:
     """Board object"""
@@ -369,7 +383,7 @@ class Api(ApiSession):
 
                 try:
                     url = url_join(self.URL, 'makaba/posting.fcgi')
-                    response = self.__http.post(self, url=url, data=post, files={'': ''}, proxies=self.proxies)
+                    response = self._post(url=url, data=post, files={'': ''}, proxies=self.proxies)
                     return response.json()
                 except requests.HTTPError as e:
                     print('Error send post: {msg}'.format(msg=e))
