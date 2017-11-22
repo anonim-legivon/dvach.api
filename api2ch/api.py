@@ -242,7 +242,7 @@ class Api:
         :return: List of threads on board
         """
         if board and self.board_exist(board):  # pragma: no cover
-            self.board.id = board
+            self.board = board
 
         threads = self._get(self.board.id, 'threads.json').threads
 
