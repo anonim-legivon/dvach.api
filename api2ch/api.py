@@ -147,7 +147,6 @@ class Message:
         return '<Message: "{comment}...">'.format(comment=self.comment[:10])
 
 
-# TODO: Допил нужен блед
 class Captcha(ApiSession):
     """
     Класс отвечает за работу с капчёй.
