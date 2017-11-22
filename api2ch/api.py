@@ -34,15 +34,14 @@ BOARDS_ALL = listmerge(BOARDS)
 URL = 'https://2ch.hk/'
 
 
-class ApiSession(requests.Session):
+class ApiSession():
     HEADERS = {
         'User-agent': 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) '
                       'Gecko/20100101 Firefox/52.0'
     }
 
     def __init__(self, proxies=None):
-        super(ApiSession, self).__init__()
-        # self.__http.headers.update(self.HEADERS)
+        self._session = requests.Session()
         self.proxies = proxies
 
     def _get(self, *args):
@@ -53,7 +52,7 @@ class ApiSession(requests.Session):
         """
         url = url_join(URL, *args)
         try:
-            response = super(ApiSession, self).get(url=url, proxies=self.proxies)
+            response = self._session.get(url=url, proxies=self.proxies)
         except Exception as e:
             print('Something goes wrong:', e)
             return None
@@ -66,7 +65,7 @@ class ApiSession(requests.Session):
     def _post(self, **kwargs):
         url = url_join(URL, kwargs['url'])
         try:
-            response = super(ApiSession, self).post(url=url, data=kwargs['data'], files=kwargs['files'],
+            response = self._session.post(url=url, data=kwargs['data'], files=kwargs['files'],
                                                     proxies=self.proxies)
         except Exception as e:
             print('Something goes wrong:', e)
