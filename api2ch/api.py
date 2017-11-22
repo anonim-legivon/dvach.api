@@ -183,7 +183,6 @@ class CaptchaHelper(ApiSession):
         captcha_payload = Dict()
         # получаем ID качи
         captcha_response = Dict(self._get(f'api/captcha/2chaptcha/service_id'))
-        print(captcha_response)
         if captcha_response.result == 1:
             captcha_payload.captcha_id = captcha_response.id
             # получаем изображение капчи
@@ -222,13 +221,6 @@ class Api(ApiSession):
         """
         :param board: board id. For example 'b'
         """
-        # self.__http = requests.Session()
-        # self.__http.headers.update({
-        #     'User-agent': 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) '
-        #                   'Gecko/20100101 Firefox/52.0'
-        # })
-        # self.proxies = proxies
-        # Подгружаем настройки всех борд, которые дают, дабы не дёргать каждый раз
         super().__init__(proxies)
         self._get_all_settings()
         self.logging = False
@@ -239,23 +231,6 @@ class Api(ApiSession):
         self.captcha_data = None
         self.passcode_data = None
 
-        # if board and self.board_exist(board):  # pragma: no cover
-        #     self.settings = self.get_settings()
-
-    # def _get(self, *args):
-    #     """
-    #     Get page
-    #     :param url: url for request
-    #     :return: raise or json object
-    #     """
-    #     url = url_join(URL, *args)
-    #     try:
-    #         response = self.__http.get(url, proxies=self.proxies)
-    #     except Exception as e:
-    #         print('Something goes wrong:', e)
-    #         return None
-    #     else:
-    #         return Dict(response.json())
 
     @property
     def board(self):
