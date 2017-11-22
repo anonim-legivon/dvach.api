@@ -108,7 +108,6 @@ class Thread:
         :param thread: dict with thread info
         """
         self.reply_count = int(thread['posts_count'])
-        # print(thread)
         self.post = Post(thread)
         self.num = self.post.num
 
@@ -244,7 +243,6 @@ class Api(ApiSession):
 
     def _get_all_settings(self):
         all_settings = self._get('makaba/mobile.fcgi?task=get_boards')
-        print(all_settings)
         for key in all_settings.keys():
             for settings in all_settings[key]:
                 self._boards[settings['id']] = Board(settings)
@@ -319,7 +317,7 @@ class Api(ApiSession):
         return self.captcha_data
 
     def auth_passcode(self, usercode):
-        url = url_join(self.URL, 'makaba/makaba.fcgi')
+        url = url_join(URL, 'makaba/makaba.fcgi')
         payload = {
             'task': 'auth',
             'usercode': usercode
@@ -356,7 +354,7 @@ class Api(ApiSession):
                 }
 
                 try:
-                    url = url_join(self.URL, 'makaba/posting.fcgi')
+                    url = url_join(URL, 'makaba/posting.fcgi')
                     response = self._post(url=url, data=post, files={'': ''}, proxies=self.proxies)
                     return response.json()
                 except requests.HTTPError as e:
