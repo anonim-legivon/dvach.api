@@ -1,6 +1,6 @@
 """2ch.hk API"""
 
-__all__ = ('Api', 'Board', 'Thread', 'Post', 'Message', 'BOARDS', 'BOARDS_ALL')
+__all__ = ('Api', 'Board', 'Thread', 'Post', 'Message', 'CaptchaHelper', 'BOARDS', 'BOARDS_ALL')
 
 from posixpath import join as url_join
 
@@ -164,12 +164,13 @@ class Message:
         return '<Message: "{comment}...">'.format(comment=self.comment[:10])
 
 
-class Captcha(ApiSession):
+# TODO: Допил нужен блед
+class CaptchaHelper(ApiSession):
     """
     Класс отвечает за работу с капчёй.
     """
 
-    def __init__(self, proxies = None):
+    def __init__(self, proxies=None):
         super().__init__(proxies)
 
     # получение изображения капчи
@@ -215,7 +216,6 @@ class Captcha(ApiSession):
 class Api(ApiSession):
     """Api object"""
     _boards = {}
-    captcha_data = Dict()
 
     def __init__(self, board=None, proxies=None):
         """
@@ -228,8 +228,8 @@ class Api(ApiSession):
         self.board = board
         self.settings = None
         self.thread = None
+        self.captcha_data = None
         self.passcode_data = None
-
 
     @property
     def board(self):
@@ -305,6 +305,19 @@ class Api(ApiSession):
 
         return sorted_threads
 
+    def get_captcha(self):  # pragma: no cover
+        """
+        Метод получает данные капчи (ID + изображение капчи)
+        :return: поле captcha_data
+        """
+        captcha = CaptchaHelper(self.proxies).get_captcha_img()
+
+        # проверка на наличие данных в ответе
+        if captcha:
+            self.captcha_data = captcha
+
+        return self.captcha_data
+
     def auth_passcode(self, usercode):
         url = url_join(self.URL, 'makaba/makaba.fcgi')
         payload = {
@@ -315,7 +328,7 @@ class Api(ApiSession):
 
         self.passcode_data = response.cookies['usercode_nocaptcha']
 
-    def send_post(self, board, thread, comment, email):  # pragma: no cover
+    def send_post(self, board, thread, comment, email, captcha_answer):  # pragma: no cover
         if isinstance(thread, Thread):
             thread = thread.num
         self.thread = thread
@@ -323,24 +336,31 @@ class Api(ApiSession):
         if board and self.board_exist(board):  # pragma: no cover
             self.board = board
 
-        post = {
-            'json': 1,
-            'task': 'post',
-            'board': self.board.id,
-            'thread': self.thread,
-            'email': email,
-            'comment': comment,
-            'captcha_type': '2chaptcha',
-            '2chaptcha_id': self.captcha_data.captcha_id,
-            '2chaptcha_value': self.captcha_data.captcha_result
-        }
+        # отправляем капчу на проверку
+        if self.captcha_data:
+            captcha_result = CaptchaHelper(self.proxies).check_captcha(captcha_id=self.captcha_data.captcha_id,
+                                                                       answer=captcha_answer)
 
-        try:
-            url = url_join(self.URL, 'makaba/posting.fcgi')
-            response = self._post(url=url, data=post, files={'': ''}, proxies=self.proxies)
-            return response.json()
-        except requests.HTTPError as e:
-            print('Error send post: {msg}'.format(msg=e))
+            # проверка решения капчи
+            if captcha_result:
+                post = {
+                    'json': 1,
+                    'task': 'post',
+                    'board': self.board.id,
+                    'thread': self.thread,
+                    'email': email,
+                    'comment': comment,
+                    'captcha_type': '2chaptcha',
+                    '2chaptcha_id': self.captcha_data.captcha_id,
+                    '2chaptcha_value': captcha_result
+                }
+
+                try:
+                    url = url_join(self.URL, 'makaba/posting.fcgi')
+                    response = self._post(url=url, data=post, files={'': ''}, proxies=self.proxies)
+                    return response.json()
+                except requests.HTTPError as e:
+                    print('Error send post: {msg}'.format(msg=e))
 
     @staticmethod
     def board_exist(board):
