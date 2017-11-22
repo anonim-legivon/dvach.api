@@ -30,14 +30,14 @@ BOARDS = {
 
 BOARDS_ALL = listmerge(BOARDS)
 
+URL = 'https://2ch.hk/'
+
 
 class ApiSession(requests.Session):
     HEADERS = {
         'User-agent': 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) '
                       'Gecko/20100101 Firefox/52.0'
     }
-
-    URL = 'https://2ch.hk/'
 
     def __init__(self, proxies):
         super().__init__()
@@ -51,11 +51,9 @@ class ApiSession(requests.Session):
         :param url: url for request
         :return: raise or json object
         """
-        url = url_join(self.URL, *args)
+        url = url_join(URL, *args)
         try:
-            print(url)
             response = self.__http.get(self, url=url, proxies=self.proxies)
-            print(response)
         except Exception as e:
             print('Something goes wrong:', e)
             return None
@@ -150,12 +148,12 @@ class Message:
 
 
 # TODO: Допил нужен блед
-class CaptchaHelper(ApiSession):
+class Captcha(ApiSession):
     """
     Класс отвечает за работу с капчёй.
     """
 
-    def __init__(self, proxies):
+    def __init__(self, proxies = None):
         super().__init__(proxies)
 
     # получение изображения капчи
@@ -167,11 +165,11 @@ class CaptchaHelper(ApiSession):
         # переменная в которой будет содержаться словарь со значениями ID / captcha image link
         captcha_payload = Dict()
         # получаем ID качи
-        captcha_response = Dict(self._get(f'api/captcha/2chaptcha/service_id').json())
+        captcha_response = self._get(f'api/captcha/2chaptcha/service_id')
         if captcha_response.result == 1:
             captcha_payload.captcha_id = captcha_response.id
             # получаем изображение капчи
-            captcha_image = self._get(f'api/captcha/2chaptcha/image/{captcha_response.id}')
+            captcha_image = requests.get(f'{URL}api/captcha/2chaptcha/image/{captcha_response.id}')
 
             captcha_payload.captcha_img = captcha_image.content
 
@@ -189,7 +187,7 @@ class CaptchaHelper(ApiSession):
         :return: Возвращает True/False в зависимости от праильности решения
         """
         # check captcha
-        response = Dict(self._get(f'api/captcha/2chaptcha/check/{captcha_id}?value={answer}').json())
+        response = self._get(f'api/captcha/2chaptcha/check/{captcha_id}?value={answer}')
 
         # check captcha
         if response.result == 1:
@@ -201,6 +199,8 @@ class CaptchaHelper(ApiSession):
 class Api(ApiSession):
     """Api object"""
     _boards = {}
+
+    captcha_data = Dict()
 
     def __init__(self, board=None, proxies=None):
         """
@@ -220,7 +220,6 @@ class Api(ApiSession):
         self.board = board
         self.settings = None
         self.thread = None
-        self.captcha_data = None
         self.passcode_data = None
 
         # if board and self.board_exist(board):  # pragma: no cover
@@ -252,9 +251,10 @@ class Api(ApiSession):
         else:
             self.__board = None
 
+
+
     def _get_all_settings(self):
         all_settings = self._get('makaba/mobile.fcgi?task=get_boards')
-        print(all_settings)
         for key in all_settings.keys():
             for settings in all_settings[key]:
                 self._boards[settings['id']] = Board(settings)
@@ -315,21 +315,8 @@ class Api(ApiSession):
 
         return sorted_threads
 
-    def get_captcha(self):  # pragma: no cover
-        """
-        Метод получает данные капчи (ID + изображение капчи)
-        :return: поле captcha_data
-        """
-        captcha = CaptchaHelper.get_captcha_img()
-
-        # проверка на наличие данных в ответе
-        if captcha:
-            self.captcha_data = captcha
-
-        return self.captcha_data
-
     def auth_passcode(self, usercode):
-        url = url_join(self.URL, 'makaba/makaba.fcgi')
+        url = url_join(URL, 'makaba/makaba.fcgi')
         payload = {
             'task': 'auth',
             'usercode': usercode
@@ -338,7 +325,7 @@ class Api(ApiSession):
 
         self.passcode_data = response.cookies['usercode_nocaptcha']
 
-    def send_post(self, board, thread, comment, email, captcha_answer):  # pragma: no cover
+    def send_post(self, board, thread, comment, email):  # pragma: no cover
         if isinstance(thread, Thread):
             thread = thread.num
         self.thread = thread
@@ -346,30 +333,24 @@ class Api(ApiSession):
         if board and self.board_exist(board):  # pragma: no cover
             self.board = board
 
-        # отправляем капчу на проверку
-        if self.captcha_data:
-            captcha_result = CaptchaHelper.check_captcha(captcha_id=self.captcha_data.captcha_id, answer=captcha_answer)
+        post = {
+            'json': 1,
+            'task': 'post',
+            'board': self.board.id,
+            'thread': self.thread,
+            'email': email,
+            'comment': comment,
+            'captcha_type': '2chaptcha',
+            '2chaptcha_id': self.captcha_data.captcha_id,
+            '2chaptcha_value': self.captcha_data.captcha_result
+            }
 
-            # проверка решения капчи
-            if captcha_result:
-                post = {
-                    'json': 1,
-                    'task': 'post',
-                    'board': self.board.id,
-                    'thread': self.thread,
-                    'email': email,
-                    'comment': comment,
-                    'captcha_type': '2chaptcha',
-                    '2chaptcha_id': self.captcha_data.captcha_id,
-                    '2chaptcha_value': captcha_result
-                }
-
-                try:
-                    url = url_join(self.URL, 'makaba/posting.fcgi')
-                    response = self.__http.post(self, url=url, data=post, files={'': ''}, proxies=self.proxies)
-                    return response.json()
-                except requests.HTTPError as e:
-                    print('Error send post: {msg}'.format(msg=e))
+        try:
+            url = url_join(URL, 'makaba/posting.fcgi')
+            response = self.__http.post(self, url=url, data=post, files={'': ''}, proxies=self.proxies)
+            return response.json()
+        except requests.HTTPError as e:\
+            print('Error send post: {msg}'.format(msg=e))
 
     @staticmethod
     def board_exist(board):
