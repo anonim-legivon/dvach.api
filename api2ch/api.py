@@ -126,7 +126,8 @@ class Captcha:
     """
 
     # получение изображения капчи
-    def get_captcha_img(self, url):
+    @staticmethod
+    def get_captcha_img():
         """
         Метод отвечает за получение изображения капчи
         :return: Возвращает словарь с полями содержащими ID капчи и изображение, либо же возбуждается ошибка
@@ -134,11 +135,11 @@ class Captcha:
         # переменная в которой будет содержаться словарь со значениями ID / captcha image link
         captcha_payload = Dict()
         # получаем ID качи
-        captcha_response = Dict(requests.get(f'{url}api/captcha/2chaptcha/service_id').json())
+        captcha_response = Dict(requests.get(f'{URL}api/captcha/2chaptcha/service_id').json())
         if captcha_response.result == 1:
             captcha_payload.captcha_id = captcha_response.id
             # получаем изображение капчи
-            captcha_image = requests.get(f'{url}api/captcha/2chaptcha/image/{captcha_response.id}')
+            captcha_image = requests.get(f'{URL}api/captcha/2chaptcha/image/{captcha_response.id}')
 
             captcha_payload.captcha_img = captcha_image.content
 
@@ -148,7 +149,8 @@ class Captcha:
             return False
 
     # проверка капчи
-    def check_captcha(self, captcha_id, answer):
+    @staticmethod
+    def check_captcha(captcha_id, answer):
         """
         Метод отвечает за проверку правельности решения капчи
         :param captcha_id: ID капчи из метода get_captcha_img
@@ -156,14 +158,11 @@ class Captcha:
         :return: Возвращает True/False в зависимости от праильности решения
         """
         # check captcha
-        result = requests.get(f'{URL}api/captcha/2chaptcha/check/{captcha_id}?value={answer}')
-
-        json_result = result.json()
+        response = Dict(requests.get(f'{URL}api/captcha/2chaptcha/check/{captcha_id}?value={answer}').json())
 
         # check captcha
-        if json_result['result'] == 1:
+        if response.result == 1:
             return True
-
         else:
             return False
 
@@ -188,8 +187,8 @@ class Api:
         """
         :param board: board id. For example 'b'
         """
-        self._http = requests.Session()
-        self._http.headers.update({
+        self.__http = requests.Session()
+        self.__http.headers.update({
             'User-agent': 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) '
                           'Gecko/20100101 Firefox/52.0'
         })
@@ -211,7 +210,7 @@ class Api:
         """
         url = url_join(URL, *args)
         try:
-            response = self._http.get(url)
+            response = self.__http.get(url)
         except Exception as e:
             print('Something goes wrong:', e)
             return None
@@ -296,7 +295,7 @@ class Api:
         Метод получает данные капчи (ID + изображение капчи)
         :return:
         """
-        captcha = Captcha().get_captcha_img(URL)
+        captcha = Captcha().get_captcha_img()
 
         # проверка на наличие данных в ответе
         if captcha:
@@ -330,7 +329,7 @@ class Api:
 
                 try:
                     url = url_join(URL, 'makaba/posting.fcgi')
-                    response = self._http.post(url, data=post, files={'': ''})
+                    response = self.__http.post(url, data=post, files={'': ''})
                     return response.json()
                 except requests.HTTPError as e:
                     print('Error send post: {msg}'.format(msg=e))
