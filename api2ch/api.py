@@ -5,6 +5,7 @@ __all__ = ('Api', 'Thread', 'Post', 'Captcha', 'BOARDS', 'BOARDS_ALL')
 from posixpath import join as url_join
 
 import requests
+from addict import Dict
 
 from api2ch.utils import listmerge
 
@@ -28,6 +29,8 @@ BOARDS = {
 }
 
 BOARDS_ALL = listmerge(BOARDS)
+
+URL = 'https://2ch.hk/'
 
 class Board:
     """Board object"""
@@ -114,20 +117,51 @@ class Thread:
 
 
 class Captcha:
-    """Captcha object"""
+    '''
+    Класс отвечает за работу с капчёй.
+    '''
 
-    def __init__(self, captcha):
-        """
-        Create object from dict with captcha info
-        :param captcha: dict with captcha info
-        """
-        self.id = captcha['id']
-        self.type = captcha['type']
-        self.img = f'https://2ch.hk/api/captcha/2chaptcha/image/{self.id}'
-        self.answer = None
+    # получение изображения капчи
+    def get_captcha_img(self):
+        '''
+        Метод отвечает за получение изображения капчи
+        :return: Возвращает словарь с полями содержащими ID капчи и изображение, либо же возбуждается ошибка
+        '''
+        # переменная в которой будет содержаться словарь со значениями ID / captcha image link
+        captcha_payload = Dict()
+        # получаем ID качи
+        captcha_response = requests.get(f'{URL}api/captcha/2chaptcha/service_id').json()
+        if captcha_response['result'] == 1:
+            captcha_payload.captcha_id = captcha_response["id"]
+            # получаем изображение капчи
+            captcha_image = requests.get(f'{URL}api/captcha/2chaptcha/image/{captcha_response["id"]}')
 
-    def __repr__(self):
-        return '<Captcha: {id}>'.format(id=self.id)
+            captcha_payload.captcha_img = captcha_image.content
+
+            return captcha_payload
+        else:
+            # TODO вызывать исключение при ошибке
+            return False
+
+    # проверка капчи
+    def check_captcha(self, captcha_id, answer):
+        '''
+        Метод отвечает за проверку правельности решения капчи
+        :param captcha_id: ID капчи из метода get_captcha_img
+        :param answer: Ответ пользователя на капчу
+        :return: Возвращает True/False в зависимости от праильности решения
+        '''
+        # check captcha
+        result = requests.get(f'{URL}api/captcha/2chaptcha/check/{captcha_id}?value={answer}')
+
+        json_result = result.json()
+
+        # check captcha
+        if json_result['result'] == 1:
+            return True
+
+        else:
+            return False
 
 
 # TODO: Прикрутить работу с пасскодом, там нужны куки
@@ -156,8 +190,8 @@ class Api:
         self.__board = None
         self.board = board
         self.settings = None
-        self.captcha_id = None
         self.thread = None
+        self.captcha_data = None
 
         # if board and self.board_exist(board):  # pragma: no cover
         #     self.settings = self.get_settings()
@@ -251,41 +285,17 @@ class Api:
         return sorted_threads
 
     def get_captcha(self):  # pragma: no cover
-        """
-        Fetching captcha
-        :return: captcha object
-        """
-        captcha = Captcha(
-            self._get('api/captcha/2chaptcha/service_id')
-        )
-        self.captcha_id = captcha.id
-        return captcha
+        '''
+        Метод получает данные капчи(ID + изображение капчи)
+        :return:
+        '''
+        captcha = Captcha().get_captcha_img()
 
-    def get_captcha_img(self, captcha):
-        """
-        Get url for captcha image
-        :param captcha: captcha object or captcha id
-        :return: url for captcha image
-        """
-        if isinstance(captcha, Captcha):
-            captcha = captcha.id
+        # проверка на наличие данных в ответе
+        if captcha:
+            self.captcha_data = captcha
 
-        return f'{self._url}api/captcha/2chaptcha/image/{captcha}'
-
-    def set_captcha_answer(self, captcha, value):
-        """
-        Check captcha answer
-        :param captcha: captcha object
-        :param value: captcha answer
-        :return: bool
-        """
-        if self._get(f'api/captcha/2chaptcha/check/{captcha.id}?value={value}')['result'] == 1:
-            captcha.answer = value
-            return True
-        else:
-            raise Exception('Wrong captcha')
-
-    def send_post(self, board, thread, comment, email, captcha):  # pragma: no cover
+    def send_post(self, board, thread, comment, email, captcha_answer):  # pragma: no cover
         if isinstance(thread, Thread):
             thread = thread.num
         self.thread = thread
@@ -293,24 +303,30 @@ class Api:
         if board and self.board_exist(board):  # pragma: no cover
             self.board = board
 
-        post = {
-            'json': 1,
-            'task': 'post',
-            'board': self.board.id,
-            'thread': self.thread,
-            'email': email,
-            'comment': comment,
-            'captcha_type': captcha.type,
-            '2chaptcha_id': captcha.id,
-            '2chaptcha_value': captcha.answer
-        }
+        # отправляем капчу на проверку
+        if self.captcha_data:
+            captcha_result = Captcha().check_captcha(captcha_id = self.captcha_data.captcha_id, answer = captcha_answer)
 
-        try:
-            url = url_join(self._url, 'makaba/posting.fcgi')
-            response = requests.post(url, data=post, files={'': ''})
-            return response.json()
-        except requests.HTTPError as e:
-            print('Error send post: {msg}'.format(msg=e))
+            # проверка решения капчи
+            if captcha_result:
+                post = {
+                    'json': 1,
+                    'task': 'post',
+                    'board': self.board.id,
+                    'thread': self.thread,
+                    'email': email,
+                    'comment': comment,
+                    'captcha_type': '2chaptcha',
+                    '2chaptcha_id': self.captcha_data.captcha_id,
+                    '2chaptcha_value': captcha_result
+                }
+
+                try:
+                    url = url_join(self._url, 'makaba/posting.fcgi')
+                    response = requests.post(url, data=post, files={'': ''})
+                    return response.json()
+                except requests.HTTPError as e:
+                    print('Error send post: {msg}'.format(msg=e))
 
     @staticmethod
     def board_exist(board):
