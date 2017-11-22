@@ -7,7 +7,7 @@ from posixpath import join as url_join
 import requests
 from addict import Dict
 
-from api2ch.utils import listmerge
+from .utils import listmerge
 
 # List sections on board
 BOARDS = {
@@ -188,9 +188,8 @@ class Api:
         """
         :param board: board id. For example 'b'
         """
-        self._url = 'https://2ch.hk/'
-        self.http = requests.Session()
-        self.http.headers.update({
+        self._http = requests.Session()
+        self._http.headers.update({
             'User-agent': 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) '
                           'Gecko/20100101 Firefox/52.0'
         })
@@ -210,9 +209,9 @@ class Api:
         :param url: url for request
         :return: raise or json object
         """
-        url = url_join(self._url, *args)
+        url = url_join(URL, *args)
         try:
-            response = self.http.get(url)
+            response = self._http.get(url)
         except Exception as e:
             print('Something goes wrong:', e)
             return None
@@ -243,9 +242,9 @@ class Api:
         :return: List of threads on board
         """
         if board and self.board_exist(board):  # pragma: no cover
-            self.board = board
+            self.board.id = board
 
-        threads = self._get(self.board, 'threads.json').threads
+        threads = self._get(self.board.id, 'threads.json').threads
 
         return (Thread(thread) for thread in threads)
 
@@ -297,7 +296,7 @@ class Api:
         Метод получает данные капчи (ID + изображение капчи)
         :return:
         """
-        captcha = Captcha().get_captcha_img(self._url)
+        captcha = Captcha().get_captcha_img(URL)
 
         # проверка на наличие данных в ответе
         if captcha:
@@ -330,8 +329,8 @@ class Api:
                 }
 
                 try:
-                    url = url_join(self._url, 'makaba/posting.fcgi')
-                    response = self.http.post(url, data=post, files={'': ''})
+                    url = url_join(URL, 'makaba/posting.fcgi')
+                    response = self._http.post(url, data=post, files={'': ''})
                     return response.json()
                 except requests.HTTPError as e:
                     print('Error send post: {msg}'.format(msg=e))
@@ -346,4 +345,4 @@ class Api:
         return board in BOARDS_ALL
 
     def __repr__(self):
-        return '<Api: {board}>'.format(board=self.board)
+        return '<Api: {board}>'.format(board=self.board.id)

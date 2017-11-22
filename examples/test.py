@@ -6,10 +6,9 @@ import api2ch
 api = api2ch.Api('pr')
 print(api.board.name)
 print(api.board.category)
-
 thread = api.get_thread(1087578)
 for p in thread:
-   print(p.comment)
+    print(p.comment)
 api.get_captcha()
 print(api.captcha_data)
 # print(api.get_captcha_img(captcha))
