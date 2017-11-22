@@ -167,18 +167,6 @@ class Captcha:
             return False
 
 
-# TODO: Прикрутить работу с пасскодом, там нужны куки
-# class Passcode(object):
-#     """Passcode object"""
-#
-#     def __init__(self, passcode):
-#         """
-#
-#         :param passcode:
-#         """
-#         pass
-
-
 class Api:
     """Api object"""
     _boards = {}
@@ -199,6 +187,7 @@ class Api:
         self.settings = None
         self.thread = None
         self.captcha_data = None
+        self.passcode_data = None
         # if board and self.board_exist(board):  # pragma: no cover
         #     self.settings = self.get_settings()
 
@@ -300,6 +289,16 @@ class Api:
         # проверка на наличие данных в ответе
         if captcha:
             self.captcha_data = captcha
+
+    def auth_passcode(self, usercode):
+        url = url_join(URL, 'makaba/makaba.fcgi')
+        payload = {
+            'task': 'auth',
+            'usercode': usercode
+        }
+        response = self.__http.post(url, data=payload)
+
+        self.passcode_data = response.cookies['usercode_nocaptcha']
 
     def send_post(self, board, thread, comment, email, captcha_answer):  # pragma: no cover
         if isinstance(thread, Thread):
