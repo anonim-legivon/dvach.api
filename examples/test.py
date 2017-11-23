@@ -4,10 +4,11 @@ sys.path.append("..")  # for dev
 import api2ch
 
 api = api2ch.Api(board='pr')
+captcha_data = api.Captcha
 
 print(api.board.name)
 print(api.board.category)
-api.board = 'test'
+
 api.set_headers({
         'User-agent': 'Huita Browser'
                       'Huita/1234.321 Abu Nyasha'
@@ -16,14 +17,14 @@ print(api.board.id)
 b = api.get_board()
 for t in b:
     print(t.post.comment)
-thread = api.get_thread(1134050)
+thread = api.get_thread(1057688)
 for p in thread:
     print(p.num)
 
 image_data = api.Captcha.get_captcha_img()
-api.captcha_data = image_data
 
-if api.captcha_data:
+
+if captcha_data:
 
     '''
     Для дальнейшей проверки можно скачать изображение, затем ввести в поле капчу и отправить на проверку, в ответ получен
@@ -31,15 +32,15 @@ if api.captcha_data:
     '''
 
     with open('im.png', 'wb') as out_image:
-        out_image.write(api.captcha_data.captcha_img)
+        out_image.write(captcha_data.captcha_image)
 
-    api.captcha_data.captcha_result = input('Введите решение капчи: ')
+    captcha_data.captcha_answer = input('Введите решение капчи: ')
 
-    answer = api.Captcha.check_captcha(captcha_id=api.captcha_data.captcha_id, answer=api.captcha_data.captcha_result)
+    answer = api.Captcha.check_captcha(captcha_id=captcha_data.captcha_id, answer=captcha_data.captcha_answer)
 
     if answer:
         print("Капча решена правильно, отправляем пост ...")
-        answer = api.send_post(thread='1082236', captcha_data=api.captcha_data, comment='Tets', bin_file='im.png')
+        answer = api.send_post(thread='1057688', captcha_data=captcha_data, comment='Tets', bin_file='im.png')
 
         if answer.Status == 'OK':
             print("Пост отправлен успешно")

@@ -1,6 +1,6 @@
 """2ch.hk API"""
 
-__all__ = ('Api', 'Board', 'Thread', 'Post', 'Message', 'BOARDS', 'BOARDS_ALL')
+__all__ = ('Api', 'Board', 'Thread', 'CaptchaHelper', 'Post', 'Message', 'BOARDS', 'BOARDS_ALL')
 
 from posixpath import join as url_join
 
@@ -163,7 +163,7 @@ class Message:
             'name': name,
             'captcha_type': '2chaptcha',
             '2chaptcha_id': captcha_data.captcha_id,
-            '2chaptcha_value': captcha_data.captcha_result,
+            '2chaptcha_value': captcha_data.captcha_answer,
         }
 
         return payload
@@ -196,6 +196,10 @@ class CaptchaHelper:
         """
 
         self.__Session = session
+        # переменная в которой будет содержаться словарь со значениями ID / captcha image link
+        self.captcha_image = None
+        self.captcha_id = None
+        self.captcha_answer = None
 
     # получение изображения капчи
     def get_captcha_img(self):
@@ -203,18 +207,17 @@ class CaptchaHelper:
         Метод отвечает за получение изображения капчи
         :return: Возвращает словарь с полями содержащими ID капчи и изображение, либо же возбуждается ошибка
         """
-        # переменная в которой будет содержаться словарь со значениями ID / captcha image link
-        captcha_payload = Dict()
+
         # получаем ID качи
         captcha_response = Dict(self.__Session.get(f'api/captcha/2chaptcha/service_id'))
         if captcha_response.result == 1:
-            captcha_payload.captcha_id = captcha_response.id
+            self.captcha_id = captcha_response.id
             # получаем изображение капчи
             captcha_image = self.__Session.get(f'api/captcha/2chaptcha/image/{captcha_response.id}')
 
-            captcha_payload.captcha_img = captcha_image.content
+            self.captcha_image = captcha_image.content
 
-            return captcha_payload
+            return True
         else:
             # TODO вызывать исключение при ошибке
             return False
@@ -232,6 +235,7 @@ class CaptchaHelper:
 
         # check captcha
         if response.result == 1:
+            self.captcha_answer = answer
             return True
         else:
             return False
@@ -254,7 +258,6 @@ class Api:
         self.settings = None
         self.thread = None
         self.Captcha = CaptchaHelper(self.__Session)
-        self.captcha_data = None
         self.passcode_data = None
 
     @property
