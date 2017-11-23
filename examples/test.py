@@ -8,6 +8,10 @@ api = api2ch.Api(board='pr')
 print(api.board.name)
 print(api.board.category)
 api.board = 'test'
+api.set_headers({
+        'User-agent': 'Huita Browser'
+                      'Huita/1234.321 Abu Nyasha'
+    })
 print(api.board.id)
 thread = api.get_thread(30751)
 for p in thread:

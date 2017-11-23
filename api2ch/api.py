@@ -79,7 +79,11 @@ class ApiSession:
 
     def update_headers(self, headers):
         self.session.headers.clear()
-        self.session.headers.update(headers)
+        self.session.headers.update(headers if headers else self.HEADERS)
+
+    def update_proxies(self, proxies):
+        if proxies:
+            self.session.proxies.update(proxies)
 
 
 class Board:
@@ -375,6 +379,9 @@ class Api:
 
     def set_headers(self, headers):
         self.__Session.update_headers(headers)
+
+    def set_proxies(self, proxies):
+        self.__Session.update_proxies(proxies)
 
     @staticmethod
     def board_exist(board):
