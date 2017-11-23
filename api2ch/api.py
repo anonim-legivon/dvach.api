@@ -77,6 +77,10 @@ class ApiSession:
             except JSONDecodeError:
                 return response
 
+    def update_headers(self, headers):
+        self.session.headers.clear()
+        self.session.headers.update(headers)
+
 
 class Board:
     """Board object"""
@@ -364,6 +368,9 @@ class Api:
         except Exception as e:
             print('Error send post: {msg}'.format(msg=e))
             return False
+
+    def set_headers(self, headers):
+        self.__Session.update_headers(headers)
 
     @staticmethod
     def board_exist(board):
