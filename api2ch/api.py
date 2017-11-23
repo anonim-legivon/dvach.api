@@ -34,7 +34,7 @@ BOARDS_ALL = listmerge(BOARDS)
 URL = 'https://2ch.hk/'
 
 
-class ApiSession():
+class ApiSession:
     HEADERS = {
         'User-agent': 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) '
                       'Gecko/20100101 Firefox/52.0'
@@ -65,8 +65,7 @@ class ApiSession():
     def _post(self, **kwargs):
         url = url_join(URL, kwargs['url'])
         try:
-            response = self._session.post(url=url, data=kwargs['data'], files=kwargs['files'],
-                                                    proxies=self.proxies)
+            response = self._session.post(url=url, data=kwargs['data'], files=kwargs['files'], proxies=self.proxies)
         except Exception as e:
             print('Something goes wrong:', e)
             return None
@@ -134,32 +133,52 @@ class Post:
         return '<Post: {num}>'.format(num=self.num)
 
 
-# TODO: Сделать класс сообщения для отправки
+# TODO доделать отправку файлов
 class Message:
     """Message object"""
 
-    def __init__(self, thread='', comment='', subject='', email=''):
-        """
-        :param thread: thread id (№ OP post)
-        :param comment: text your comment
-        :param subject: subject message example( SAGE )
-        :param email: user email
-        """
-        self.captcha_type = '2chaptcha'
-        self.captcha_key = ''
-        self.json = 1
-        self.task = 'post'
-        self.subject = subject
-        self.thread = thread
-        self.submit = ''
-        self.file = ''
-        self.name = ''
-        self.captcha = ''
-        self.email = email
-        self.comment = comment
+    # формирование пайлоада сообщения
+    def create_payload(self, captcha_data, board_id, thread_id, comment, email = None, subject = None, name = None):
+        '''
+        Метод  в качестве параметров принимает данные для формирования пайлода сообщения
+        :param thread: Номер треда
+        :param comment: Тело поста
+        :param captcha_data: addict.Dict() данные капчи от CaptchaHelper
+        :param bin_file: Ссылка на файл для прикрепления к посту
+        :param subject: Тема поста
+        :param name: Имя
+        :param email: Электронный адрес
+        :return:
+        '''
+        payload = {
+            'json': 1,
+            'task': 'post',
+            'board': board_id,
+            'thread': thread_id,
+            'email': email,
+            'comment': comment,
+            'subject': subject,
+            'name': name,
+            'captcha_type': '2chaptcha',
+            '2chaptcha_id': captcha_data.captcha_id,
+            '2chaptcha_value': captcha_data.captcha_result,
+            }
 
-    def __repr__(self):
-        return '<Message: "{comment}...">'.format(comment=self.comment[:10])
+        return payload
+
+    # прикрепление файлов
+    def add_file(self, bin_file = None):
+        '''
+        Метод добавляет файл(ы) для отправки их вместе с постом
+        :param bin_file: Адрес файла
+        :return: Возвращает JSON с файлом, готовый к передаче на сервер
+        '''
+        if bin_file:
+            with open(bin_file, 'rb') as user_file:
+                file = {'file': user_file}
+            return file
+        else:
+            return {'': ''}
 
 
 class CaptchaHelper:
@@ -222,7 +241,7 @@ class Api:
     """Api object"""
     _boards = {}
 
-    def __init__(self, board=None, proxies = None):
+    def __init__(self, board, proxies = None):
         """
         :param board: board id. For example 'b'
         """
@@ -252,18 +271,19 @@ class Api:
 
     def _get_all_settings(self):
         all_settings = self.session._get('makaba/mobile.fcgi?task=get_boards')
+
         for key in all_settings.keys():
             for settings in all_settings[key]:
                 self._boards[settings['id']] = Board(settings)
 
-    def get_board(self, board=None):
+    def get_board(self):
         """
         Get all threads from board
         :param board: board code
         :return: List of threads on board
         """
-        if board and self.board_exist(board):  # pragma: no cover
-            self.board = board
+        if self.board and self.board_exist(self.board):  # pragma: no cover
+            self.board = self.board
 
         threads = self.session._get(self.board.id, 'threads.json').threads
 
@@ -322,35 +342,48 @@ class Api:
 
         self.passcode_data = response.cookies['usercode_nocaptcha']
 
-    def send_post(self, board, thread, comment, email, captcha_answer):  # pragma: no cover
+    def send_post(self, thread, comment, captcha_data, bin_file = None, subject = None, name = None, email = None):
+        '''
+        Метод  в качестве параметров принимает данные для формирования пайлода сообщения
+        :param thread: Номер треда
+        :param comment: Тело поста
+        :param captcha_data: addict.Dict() данные капчи от CaptchaHelper
+        :param bin_file: Ссылка на файл для прикрепления к посту
+        :param subject: Тема поста
+        :param name: Имя
+        :param email: Электронный адрес
+        :return: При успешной отправке сообщения возвращает тело ответа сервера, при ошибке - возвращает False(будет возбуждать ошибку)
+        '''
         if isinstance(thread, Thread):
             thread = thread.num
         self.thread = thread
 
-        if board and self.board_exist(board):  # pragma: no cover
-            self.board = board
+        if self.board and self.board_exist(self.board):  # pragma: no cover
+            self.board = self.board
 
-        post = {
-            'json': 1,
-            'task': 'post',
-            'board': self.board.id,
-            'thread': self.thread,
-            'email': email,
-            'comment': comment,
-            'captcha_type': '2chaptcha',
-            '2chaptcha_id': self.captcha_data.captcha_id,
-            '2chaptcha_value': self.captcha_data.captcha_result,
-            }
+        message_payload = Message().create_payload(captcha_data = captcha_data,
+                                                   board_id = self.board.id,
+                                                   thread_id = thread,
+                                                   comment = comment,
+                                                   email = email,
+                                                   subject = subject,
+                                                   name = name)
+
+        # TODO доделать отправку файлов
+        message_file = {'':''} #Message().add_file(bin_file = bin_file)
+
 
         try:
-            url = url_join(URL, 'makaba/posting.fcgi')
-            response = self.session._post(url=url, data=post, files={'': ''}, proxies=self.proxies)
-            return response.json()
-        except requests.HTTPError as e:
+            response = self.session._post(url = 'makaba/posting.fcgi',
+                                          data = message_payload,
+                                          files = message_file,
+                                          proxies = self.proxies)
+            return response
+        except Exception as e:
             print('Error send post: {msg}'.format(msg=e))
+            return False
 
-    @staticmethod
-    def board_exist(board):
+    def board_exist(self, board):
         """
         Checking exist section on board or not
         :param board: name section. example('b')

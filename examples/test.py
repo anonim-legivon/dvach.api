@@ -3,12 +3,12 @@ import sys
 sys.path.append("..")  # for dev
 import api2ch
 
-api = api2ch.Api('pr')
+api = api2ch.Api(board = 'pr')
 captcha_conn = api2ch.CaptchaHelper(session = api.session)
 
 print(api.board.name)
 print(api.board.category)
-thread = api.get_thread(1087578)
+thread = api.get_thread(1082236)
 for p in thread:
     print(p.comment)
 
@@ -29,7 +29,16 @@ api.captcha_data.captcha_result = input('Введите решение капч�
 
 answer = captcha_conn.check_captcha(captcha_id=api.captcha_data.captcha_id, answer=api.captcha_data.captcha_result)
 
-print(answer)
+
+if answer:
+    print("Капча решена правильно, отправляем пост ...")
+    answer = api.send_post(thread = '1082236', captcha_data = api.captcha_data, comment = 'Tets', bin_file = 'im.png')
+
+    if answer.Status == 'OK':
+        print("Пост отправлен успешно")
+    else:
+        print("Ошибка при оптравке поста")
+        print(answer)
 
 # print(api.get_captcha_img(captcha))
 # value = input('Captcha answer: ')
