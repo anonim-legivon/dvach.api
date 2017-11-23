@@ -41,18 +41,18 @@ class ApiSession:
     }
 
     def __init__(self, proxies=None):
-        self._session = requests.Session()
+        self.session = requests.Session()
         self.proxies = proxies
 
-    def _get(self, *args):
+    def get(self, *args):
         """
-        Get page
-        :param url: url for request
-        :return: raise or json object
+        Get url
+        :param args: args for request
+        :return:
         """
         url = url_join(URL, *args)
         try:
-            response = self._session.get(url=url, proxies=self.proxies)
+            response = self.session.get(url=url, proxies=self.proxies)
         except Exception as e:
             print('Something goes wrong:', e)
             return None
@@ -62,10 +62,10 @@ class ApiSession:
             except JSONDecodeError:
                 return response
 
-    def _post(self, **kwargs):
+    def post(self, **kwargs):
         url = url_join(URL, kwargs['url'])
         try:
-            response = self._session.post(url=url, data=kwargs['data'], files=kwargs['files'], proxies=self.proxies)
+            response = self.session.post(url=url, data=kwargs['data'], files=kwargs['files'], proxies=self.proxies)
         except Exception as e:
             print('Something goes wrong:', e)
             return None
@@ -138,18 +138,8 @@ class Message:
     """Message object"""
 
     # формирование пайлоада сообщения
-    def create_payload(self, captcha_data, board_id, thread_id, comment, email = None, subject = None, name = None):
-        '''
-        Метод  в качестве параметров принимает данные для формирования пайлода сообщения
-        :param thread: Номер треда
-        :param comment: Тело поста
-        :param captcha_data: addict.Dict() данные капчи от CaptchaHelper
-        :param bin_file: Ссылка на файл для прикрепления к посту
-        :param subject: Тема поста
-        :param name: Имя
-        :param email: Электронный адрес
-        :return:
-        '''
+    @staticmethod
+    def create_payload(captcha_data, board_id, thread_id, comment, email=None, subject=None, name=None):
         payload = {
             'json': 1,
             'task': 'post',
@@ -162,17 +152,18 @@ class Message:
             'captcha_type': '2chaptcha',
             '2chaptcha_id': captcha_data.captcha_id,
             '2chaptcha_value': captcha_data.captcha_result,
-            }
+        }
 
         return payload
 
     # прикрепление файлов
-    def add_file(self, bin_file = None):
-        '''
+    @staticmethod
+    def add_file(bin_file=None):
+        """
         Метод добавляет файл(ы) для отправки их вместе с постом
         :param bin_file: Адрес файла
         :return: Возвращает JSON с файлом, готовый к передаче на сервер
-        '''
+        """
         if bin_file:
             with open(bin_file, 'rb') as user_file:
                 file = {'file': user_file}
@@ -186,16 +177,16 @@ class CaptchaHelper:
     Класс отвечает за работу с капчёй.
     """
 
-    def __init__(self, proxies=None, session = None):
-        '''
+    def __init__(self, proxies=None, session=None):
+        """
         Инициализирует подключение для капчи
         :param proxies: Прокси
         :param session: Сессия, если не передана- создаётся новая, иначе используем существующую
-        '''
+        """
         if session:
             self.session = session
         else:
-            self.session = ApiSession(proxies = proxies)
+            self.session = ApiSession(proxies=proxies)
 
     # получение изображения капчи
     def get_captcha_img(self):
@@ -206,11 +197,11 @@ class CaptchaHelper:
         # переменная в которой будет содержаться словарь со значениями ID / captcha image link
         captcha_payload = Dict()
         # получаем ID качи
-        captcha_response = Dict(self.session._get(f'api/captcha/2chaptcha/service_id'))
+        captcha_response = Dict(self.session.get(f'api/captcha/2chaptcha/service_id'))
         if captcha_response.result == 1:
             captcha_payload.captcha_id = captcha_response.id
             # получаем изображение капчи
-            captcha_image = self.session._get(f'api/captcha/2chaptcha/image/{captcha_response.id}')
+            captcha_image = self.session.get(f'api/captcha/2chaptcha/image/{captcha_response.id}')
 
             captcha_payload.captcha_img = captcha_image.content
 
@@ -228,7 +219,7 @@ class CaptchaHelper:
         :return: Возвращает True/False в зависимости от праильности решения
         """
         # check captcha
-        response = Dict(self.session._get(f'api/captcha/2chaptcha/check/{captcha_id}?value={answer}'))
+        response = Dict(self.session.get(f'api/captcha/2chaptcha/check/{captcha_id}?value={answer}'))
 
         # check captcha
         if response.result == 1:
@@ -241,13 +232,13 @@ class Api:
     """Api object"""
     _boards = {}
 
-    def __init__(self, board, proxies = None):
+    def __init__(self, board, proxies=None):
         """
         :param board: board id. For example 'b'
         """
 
-        self.session = ApiSession()
-        self._get_all_settings()
+        self.__session = ApiSession()
+        self.__get_all_settings()
 
         self.proxies = proxies
         self.logging = False
@@ -269,23 +260,18 @@ class Api:
         else:
             self.__board = None
 
-    def _get_all_settings(self):
-        all_settings = self.session._get('makaba/mobile.fcgi?task=get_boards')
+    def __get_all_settings(self):
+        all_settings = self.__session.get('makaba/mobile.fcgi?task=get_boards')
 
         for key in all_settings.keys():
             for settings in all_settings[key]:
                 self._boards[settings['id']] = Board(settings)
 
     def get_board(self):
-        """
-        Get all threads from board
-        :param board: board code
-        :return: List of threads on board
-        """
         if self.board and self.board_exist(self.board):  # pragma: no cover
             self.board = self.board
 
-        threads = self.session._get(self.board.id, 'threads.json').threads
+        threads = self.__session.get(self.board.id, 'threads.json').threads
 
         return (Thread(thread) for thread in threads)
 
@@ -299,7 +285,7 @@ class Api:
             thread = thread.num
         self.thread = thread
 
-        posts = self.session._get(self.board.id, f'res/{self.thread}.json').threads
+        posts = self.__session.get(self.board.id, f'res/{self.thread}.json').threads
 
         return (Post(post) for post in posts[0].posts)
 
@@ -314,7 +300,7 @@ class Api:
         if board and self.board_exist(board):  # pragma: no cover
             self.board = board
 
-        threads = self.session._get(self.board, 'threads.json').threads
+        threads = self.__session.get(self.board, 'threads.json').threads
 
         if method == 'views':
             threads = sorted(threads, key=lambda thread: (thread['views'], thread['score']), reverse=True)
@@ -338,12 +324,12 @@ class Api:
             'task': 'auth',
             'usercode': usercode
         }
-        response = self.session.get(self, url=url, data=payload)
+        response = self.__session.post(url=url, data=payload)
 
         self.passcode_data = response.cookies['usercode_nocaptcha']
 
-    def send_post(self, thread, comment, captcha_data, bin_file = None, subject = None, name = None, email = None):
-        '''
+    def send_post(self, thread, comment, captcha_data, bin_file=None, subject=None, name=None, email=None):
+        """
         Метод  в качестве параметров принимает данные для формирования пайлода сообщения
         :param thread: Номер треда
         :param comment: Тело поста
@@ -352,8 +338,8 @@ class Api:
         :param subject: Тема поста
         :param name: Имя
         :param email: Электронный адрес
-        :return: При успешной отправке сообщения возвращает тело ответа сервера, при ошибке - возвращает False(будет возбуждать ошибку)
-        '''
+        :return: Тело ответа сервера, при ошибке - возвращает False(будет возбуждать ошибку)
+        """
         if isinstance(thread, Thread):
             thread = thread.num
         self.thread = thread
@@ -361,29 +347,29 @@ class Api:
         if self.board and self.board_exist(self.board):  # pragma: no cover
             self.board = self.board
 
-        message_payload = Message().create_payload(captcha_data = captcha_data,
-                                                   board_id = self.board.id,
-                                                   thread_id = thread,
-                                                   comment = comment,
-                                                   email = email,
-                                                   subject = subject,
-                                                   name = name)
+        message_payload = Message().create_payload(captcha_data=captcha_data,
+                                                   board_id=self.board.id,
+                                                   thread_id=thread,
+                                                   comment=comment,
+                                                   email=email,
+                                                   subject=subject,
+                                                   name=name)
 
         # TODO доделать отправку файлов
-        message_file = {'':''} #Message().add_file(bin_file = bin_file)
-
+        message_file = {'': ''}  # Message().add_file(bin_file = bin_file)
 
         try:
-            response = self.session._post(url = 'makaba/posting.fcgi',
-                                          data = message_payload,
-                                          files = message_file,
-                                          proxies = self.proxies)
+            response = self.__session.post(url='makaba/posting.fcgi',
+                                           data=message_payload,
+                                           files=message_file,
+                                           proxies=self.proxies)
             return response
         except Exception as e:
             print('Error send post: {msg}'.format(msg=e))
             return False
 
-    def board_exist(self, board):
+    @staticmethod
+    def board_exist(board):
         """
         Checking exist section on board or not
         :param board: name section. example('b')
