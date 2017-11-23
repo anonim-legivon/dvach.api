@@ -1,6 +1,6 @@
 """2ch.hk API"""
 
-__all__ = ('Api', 'Board', 'Thread', 'Post', 'Message', 'CaptchaHelper', 'BOARDS', 'BOARDS_ALL')
+__all__ = ('Api', 'Board', 'Thread', 'Post', 'Message', 'BOARDS', 'BOARDS_ALL')
 
 from posixpath import join as url_join
 
@@ -40,9 +40,11 @@ class ApiSession:
                       'Gecko/20100101 Firefox/52.0'
     }
 
-    def __init__(self, proxies=None):
+    def __init__(self, proxies=None, headers=None):
         self.session = requests.Session()
-        self.proxies = proxies
+        self.session.headers.update(headers if headers else self.HEADERS)
+        if proxies:
+            self.session.proxies.update(proxies)
 
     def get(self, *args):
         """
@@ -52,7 +54,7 @@ class ApiSession:
         """
         url = url_join(URL, *args)
         try:
-            response = self.session.get(url=url, proxies=self.proxies)
+            response = self.session.get(url=url)
         except Exception as e:
             print('Something goes wrong:', e)
             return None
@@ -65,7 +67,7 @@ class ApiSession:
     def post(self, **kwargs):
         url = url_join(URL, kwargs['url'])
         try:
-            response = self.session.post(url=url, data=kwargs['data'], files=kwargs['files'], proxies=self.proxies)
+            response = self.session.post(url=url, data=kwargs['data'], files=kwargs['files'])
         except Exception as e:
             print('Something goes wrong:', e)
             return None
@@ -177,16 +179,13 @@ class CaptchaHelper:
     Класс отвечает за работу с капчёй.
     """
 
-    def __init__(self, proxies=None, session=None):
+    def __init__(self, session):
         """
         Инициализирует подключение для капчи
-        :param proxies: Прокси
-        :param session: Сессия, если не передана- создаётся новая, иначе используем существующую
+        :param session: Сессия ApiSession
         """
-        if session:
-            self.session = session
-        else:
-            self.session = ApiSession(proxies=proxies)
+
+        self.__Session = session
 
     # получение изображения капчи
     def get_captcha_img(self):
@@ -197,11 +196,11 @@ class CaptchaHelper:
         # переменная в которой будет содержаться словарь со значениями ID / captcha image link
         captcha_payload = Dict()
         # получаем ID качи
-        captcha_response = Dict(self.session.get(f'api/captcha/2chaptcha/service_id'))
+        captcha_response = Dict(self.__Session.get(f'api/captcha/2chaptcha/service_id'))
         if captcha_response.result == 1:
             captcha_payload.captcha_id = captcha_response.id
             # получаем изображение капчи
-            captcha_image = self.session.get(f'api/captcha/2chaptcha/image/{captcha_response.id}')
+            captcha_image = self.__Session.get(f'api/captcha/2chaptcha/image/{captcha_response.id}')
 
             captcha_payload.captcha_img = captcha_image.content
 
@@ -219,7 +218,7 @@ class CaptchaHelper:
         :return: Возвращает True/False в зависимости от праильности решения
         """
         # check captcha
-        response = Dict(self.session.get(f'api/captcha/2chaptcha/check/{captcha_id}?value={answer}'))
+        response = Dict(self.__Session.get(f'api/captcha/2chaptcha/check/{captcha_id}?value={answer}'))
 
         # check captcha
         if response.result == 1:
@@ -232,20 +231,19 @@ class Api:
     """Api object"""
     _boards = {}
 
-    def __init__(self, board, proxies=None):
+    def __init__(self, board='b', proxies=None, headers=None):
         """
         :param board: board id. For example 'b'
         """
 
-        self.__session = ApiSession()
+        self.__Session = ApiSession(proxies=proxies, headers=headers)
         self.__get_all_settings()
-
-        self.proxies = proxies
         self.logging = False
         self.__board = None
         self.board = board
         self.settings = None
         self.thread = None
+        self.Captcha = CaptchaHelper(self.__Session)
         self.captcha_data = None
         self.passcode_data = None
 
@@ -261,7 +259,7 @@ class Api:
             self.__board = None
 
     def __get_all_settings(self):
-        all_settings = self.__session.get('makaba/mobile.fcgi?task=get_boards')
+        all_settings = self.__Session.get('makaba/mobile.fcgi?task=get_boards')
 
         for key in all_settings.keys():
             for settings in all_settings[key]:
@@ -271,7 +269,7 @@ class Api:
         if self.board and self.board_exist(self.board):  # pragma: no cover
             self.board = self.board
 
-        threads = self.__session.get(self.board.id, 'threads.json').threads
+        threads = self.__Session.get(self.board.id, 'threads.json').threads
 
         return (Thread(thread) for thread in threads)
 
@@ -285,7 +283,7 @@ class Api:
             thread = thread.num
         self.thread = thread
 
-        posts = self.__session.get(self.board.id, f'res/{self.thread}.json').threads
+        posts = self.__Session.get(self.board.id, f'res/{self.thread}.json').threads
 
         return (Post(post) for post in posts[0].posts)
 
@@ -300,7 +298,7 @@ class Api:
         if board and self.board_exist(board):  # pragma: no cover
             self.board = board
 
-        threads = self.__session.get(self.board, 'threads.json').threads
+        threads = self.__Session.get(self.board, 'threads.json').threads
 
         if method == 'views':
             threads = sorted(threads, key=lambda thread: (thread['views'], thread['score']), reverse=True)
@@ -324,7 +322,7 @@ class Api:
             'task': 'auth',
             'usercode': usercode
         }
-        response = self.__session.post(url=url, data=payload)
+        response = self.__Session.post(url=url, data=payload)
 
         self.passcode_data = response.cookies['usercode_nocaptcha']
 
@@ -359,10 +357,9 @@ class Api:
         message_file = {'': ''}  # Message().add_file(bin_file = bin_file)
 
         try:
-            response = self.__session.post(url='makaba/posting.fcgi',
+            response = self.__Session.post(url='makaba/posting.fcgi',
                                            data=message_payload,
-                                           files=message_file,
-                                           proxies=self.proxies)
+                                           files=message_file)
             return response
         except Exception as e:
             print('Error send post: {msg}'.format(msg=e))

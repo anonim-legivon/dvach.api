@@ -4,7 +4,6 @@ sys.path.append("..")  # for dev
 import api2ch
 
 api = api2ch.Api(board='pr')
-captcha_conn = api2ch.CaptchaHelper(session=api.session)
 
 print(api.board.name)
 print(api.board.category)
@@ -12,7 +11,7 @@ thread = api.get_thread(1082236)
 for p in thread:
     print(p.comment)
 
-image_data = captcha_conn.get_captcha_img()
+image_data = api.Captcha.get_captcha_img()
 api.captcha_data = image_data
 
 print(api.captcha_data)
@@ -27,7 +26,7 @@ with open('im.png', 'wb') as out_image:
 
 api.captcha_data.captcha_result = input('Введите решение капчи: ')
 
-answer = captcha_conn.check_captcha(captcha_id=api.captcha_data.captcha_id, answer=api.captcha_data.captcha_result)
+answer = api.Captcha.check_captcha(captcha_id=api.captcha_data.captcha_id, answer=api.captcha_data.captcha_result)
 
 if answer:
     print("Капча решена правильно, отправляем пост ...")
