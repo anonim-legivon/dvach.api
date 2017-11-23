@@ -1,6 +1,6 @@
 """2ch.hk API"""
 
-__all__ = ('Api', 'Board', 'Thread', 'CaptchaHelper', 'Post', 'Message', 'BOARDS', 'BOARDS_ALL')
+__all__ = ('Api', 'Board', 'Thread', 'Post', 'Message', 'BOARDS', 'BOARDS_ALL')
 
 from posixpath import join as url_join
 
@@ -145,13 +145,12 @@ class Post:
         return '<Post: {num}>'.format(num=self.num)
 
 
-# TODO доделать отправку файлов
 class Message:
     """Message object"""
 
     # формирование пайлоада сообщения
     @staticmethod
-    def create_payload(captcha_data, board_id, thread_id, comment, email=None, subject=None, name=None):
+    def create_payload(captcha_data, board_id, thread_id, comment, email=None, subject=None, name=None, usercode = None):
         payload = {
             'json': 1,
             'task': 'post',
@@ -161,25 +160,34 @@ class Message:
             'comment': comment,
             'subject': subject,
             'name': name,
-            'captcha_type': '2chaptcha',
-            '2chaptcha_id': captcha_data.captcha_id,
-            '2chaptcha_value': captcha_data.captcha_answer,
+
         }
+        if usercode:
+            payload.update({'usercode': usercode})
+        else:
+            payload.update({
+                'captcha_type': '2chaptcha',
+                '2chaptcha_id': captcha_data.captcha_id,
+                '2chaptcha_value': captcha_data.captcha_answer
+                })
 
         return payload
 
     # прикрепление файлов
     @staticmethod
-    def add_file(bin_file=None):
+    def add_file(bin_files=None):
         """
         Метод добавляет файл(ы) для отправки их вместе с постом
         :param bin_file: Адрес файла
         :return: Возвращает JSON с файлом, готовый к передаче на сервер
         """
-        if bin_file:
-            with open(bin_file, 'rb') as user_file:
-                file = {'file': user_file}
-            return file
+        if bin_files:
+            element_num = 1
+            files = {}
+            for file in bin_files:
+                files.update({f'image{element_num}': open(file, 'rb')})
+                element_num += 1
+            return files
         else:
             return {'': ''}
 
@@ -347,7 +355,7 @@ class Api:
 
         self.passcode_data = response.cookies['usercode_nocaptcha']
 
-    def send_post(self, thread, comment, captcha_data, bin_file=None, subject=None, name=None, email=None):
+    def send_post(self, thread, comment, captcha_data, files_list=None, subject=None, name=None, email=None):
         """
         Метод  в качестве параметров принимает данные для формирования пайлода сообщения
         :param thread: Номер треда
@@ -375,7 +383,7 @@ class Api:
                                                    name=name)
 
         # TODO доделать отправку файлов
-        message_file = {'': ''}  # Message().add_file(bin_file = bin_file)
+        message_file = Message().add_file(bin_files = files_list)
 
         try:
             response = self.__Session.post(url='makaba/posting.fcgi',

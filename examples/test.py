@@ -40,7 +40,7 @@ if captcha_data:
 
     if answer:
         print("Капча решена правильно, отправляем пост ...")
-        answer = api.send_post(thread='1057688', captcha_data=captcha_data, comment='Tets', bin_file='im.png')
+        answer = api.send_post(thread='1057688', captcha_data=captcha_data, comment='Tets', files_list=('im.png','2.jpg','3.jpg'))
 
         if answer.Status == 'OK':
             print("Пост отправлен успешно")
