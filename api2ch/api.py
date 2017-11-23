@@ -26,7 +26,7 @@ BOARDS = {
              'cul', 'out', 'old', 'cc', 'ussr', 'jsf', 'ukr', 'sw', 'law', 'm', 'ya', 'r34', 'qtr4', 'wow', 'gabe',
              'cute', 'by', 'se', 'kz', '8', 'es', 'alco', 'brg', 'mlpr', 'ro', 'who', 'srv', 'asmr', 'dr', 'electrach',
              'ing', 'got', 'crypt', 'socionics', 'lap', 'smo', 'hg', 'sad', 'fi', 'nvr', 'ind', 'ld', 'fem', 'gsg',
-             'kpop', 'vr', 'arg', 'char', 'obr', 'hv', '2d', 'wwe', 'ch', 'int', 'math']
+             'kpop', 'vr', 'arg', 'char', 'obr', 'hv', '2d', 'wwe', 'ch', 'int', 'math', 'test']
 }
 
 BOARDS_ALL = listmerge(BOARDS)
@@ -268,6 +268,10 @@ class Api:
         for key in all_settings.keys():
             for settings in all_settings[key]:
                 self._boards[settings['id']] = Board(settings)
+
+        for board in BOARDS_ALL: # докидываем скрытых борд, на которые Абу не дает настроек
+            if board not in self._boards.keys():
+                self._boards[board] = Board({'id': board})
 
     def get_board(self):
         if self.board and self.board_exist(self.board):  # pragma: no cover
