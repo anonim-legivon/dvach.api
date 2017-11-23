@@ -13,7 +13,10 @@ api.set_headers({
                       'Huita/1234.321 Abu Nyasha'
     })
 print(api.board.id)
-thread = api.get_thread(30751)
+b = api.get_board()
+for t in b:
+    print(t.post.comment)
+thread = api.get_thread(1134050)
 for p in thread:
     print(p.num)
 

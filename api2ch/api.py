@@ -78,11 +78,13 @@ class ApiSession:
                 return response
 
     def update_headers(self, headers):
-        self.session.headers.clear()
-        self.session.headers.update(headers if headers else self.HEADERS)
+        if headers:
+            self.session.headers.clear()
+            self.session.headers.update(headers if headers else self.HEADERS)
 
     def update_proxies(self, proxies):
         if proxies:
+            self.session.proxies.clear()
             self.session.proxies.update(proxies)
 
 
@@ -273,29 +275,33 @@ class Api:
             for settings in all_settings[key]:
                 self._boards[settings['id']] = Board(settings)
 
-        for board in BOARDS_ALL: # докидываем скрытых борд, на которые Абу не дает настроек
+        for board in BOARDS_ALL:  # докидываем скрытых борд, на которые Абу не дает настроек
             if board not in self._boards.keys():
                 self._boards[board] = Board({'id': board})
 
-    def get_board(self):
-        if self.board and self.board_exist(self.board):  # pragma: no cover
-            self.board = self.board
+    def get_board(self, board=None):
+        if not (board and self.board_exist(board)):  # pragma: no cover
+            board = self.board.id
 
-        threads = self.__Session.get(self.board.id, 'threads.json').threads
+        threads = self.__Session.get(board, 'threads.json').threads
 
         return (Thread(thread) for thread in threads)
 
-    def get_thread(self, thread):
+    def get_thread(self, thread, board=None):
         """
         Get thread
         :param thread: id of thread
+        :param board: id of board
         :return: List of Posts object
         """
         if isinstance(thread, Thread):
             thread = thread.num
         self.thread = thread
 
-        posts = self.__Session.get(self.board.id, f'res/{self.thread}.json').threads
+        if not (board and self.board_exist(board)):  # pragma: no cover
+            board = self.board.id
+
+        posts = self.__Session.get(board, f'res/{self.thread}.json').threads
 
         return (Post(post) for post in posts[0].posts)
 
@@ -307,10 +313,10 @@ class Api:
         :param num: num of threads to return
         :return: list
         """
-        if board and self.board_exist(board):  # pragma: no cover
-            self.board = board
+        if not (board and self.board_exist(board)):  # pragma: no cover
+            board = self.board.id
 
-        threads = self.__Session.get(self.board, 'threads.json').threads
+        threads = self.__Session.get(board, 'threads.json').threads
 
         if method == 'views':
             threads = sorted(threads, key=lambda thread: (thread['views'], thread['score']), reverse=True)
@@ -353,7 +359,7 @@ class Api:
         if isinstance(thread, Thread):
             thread = thread.num
         self.thread = thread
-
+        # TODO: Вот тут еще переделать проверку борды
         if self.board and self.board_exist(self.board):  # pragma: no cover
             self.board = self.board
 
@@ -377,10 +383,10 @@ class Api:
             print('Error send post: {msg}'.format(msg=e))
             return False
 
-    def set_headers(self, headers):
+    def set_headers(self, headers=None):
         self.__Session.update_headers(headers)
 
-    def set_proxies(self, proxies):
+    def set_proxies(self, proxies=None):
         self.__Session.update_proxies(proxies)
 
     @staticmethod
