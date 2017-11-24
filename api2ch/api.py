@@ -296,7 +296,7 @@ class Api:
 
         threads = self.__Session.get(board, 'threads.json').threads
 
-        return (Thread(thread) for thread in threads)
+        return [Thread(thread) for thread in threads]
 
     def get_thread(self, thread, board=None):
         """
@@ -314,7 +314,7 @@ class Api:
 
         posts = self.__Session.get(board, f'res/{self.thread}.json').threads
 
-        return (Post(post) for post in posts[0].posts)
+        return [Post(post) for post in posts[0].posts]
 
     def get_top(self, board=None, method='views', num=5):
         """
