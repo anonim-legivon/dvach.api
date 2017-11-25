@@ -143,6 +143,7 @@ class Post:
         Create object from dict with post info
         :param post: dict with post info
         """
+        self.comment = None
         self.num = None
         for key, value in post.items():
             setattr(self, key, value)
@@ -402,6 +403,30 @@ class DvachApi:
                         file.close()
                     except AttributeError:
                         continue
+
+    def find_threads(self, board=None, patterns=None, antipatterns=None):
+        """
+        Поиск тредов по заданным строкам в шапке
+        :param board: ИД борды
+        :param patterns: Список фраз для поиска в шапке
+        :param antipatterns: Список фраз которые не должны всречаться в шапке
+        :return: Список тредов удовлетворяющих условиям
+        """
+        if patterns is None:
+            patterns = []
+        if antipatterns is None:
+            antipatterns = []
+
+        if not (board and self.board_exist(board)):  # pragma: no cover
+            board = self.board.id
+
+        threads = self.get_board(board)
+
+        matched_threads = [thread for thread in threads if
+                           any(subs in thread.post.comment.lower() for subs in patterns) and all(
+                               subs not in thread.post.comment.lower() for subs in antipatterns)]
+
+        return matched_threads
 
     def set_headers(self, headers=None):
         """
