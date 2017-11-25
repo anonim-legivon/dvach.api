@@ -9,7 +9,7 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
-requires = ['requests>=2.18.4', 'addict>=2.1.1']
+requires = ['requests', 'addict', 'simplejson']
 
 setup(
     name='dvach.api',
@@ -34,7 +34,6 @@ setup(
         'Programming Language :: Python :: 3.6',
         'License :: OSI Approved :: Apache Software License',
         'Topic :: Internet'
-
     ],
     zip_safe=False
 )
