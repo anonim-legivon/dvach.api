@@ -25,48 +25,7 @@ Install
 Usage
 -----
 
-Getting threads on board
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-::
-
-    from api2ch import Api
-
-    api = Api('b')
-
-    board = api.get_board()
-
-    for thread in board:
-        print(f'Num: {thread.num}, Replies: {thread.reply_count}, Post: {thread.post.comment}')
-
-Getting posts in thread
-~~~~~~~~~~~~~~~~~~~~~~~
-
-::
-
-    from api2ch import Api
-
-    api = Api('abu')
-
-    thread = api.get_thread(42375)
-
-    for post in thread:
-        print(post.comment)
-
-Getting top of threads on board
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-::
-
-    from api2ch import Api
-
-    api = Api()
-
-    # board='доска', method='метод сортировки (views, score, posts), num=количество тредов
-    top = api.get_top(board='pr', method='posts', num=10)
-
-    for thread in top:
-        print(thread)
+.. _Examples: https://github.com/anonim-legivon/dvach.api/tree/dev/examples
 
 Bug tracker
 -----------
