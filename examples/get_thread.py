@@ -1,6 +1,6 @@
 import api2ch
 
-api = api2ch.Api('abu')
+api = api2ch.DvachApi('abu')
 
 thread = api.get_thread(42375)
 

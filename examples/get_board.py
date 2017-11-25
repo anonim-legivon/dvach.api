@@ -1,6 +1,6 @@
 import api2ch
 
-api = api2ch.Api('b')
+api = api2ch.DvachApi('b')
 
 board = api.get_board()
 

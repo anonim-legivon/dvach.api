@@ -1,6 +1,6 @@
 """2ch.hk API"""
 
-__all__ = ('Api', 'Board', 'Thread', 'Post', 'Message', 'BOARDS', 'BOARDS_ALL')
+__all__ = ('DvachApi', 'Board', 'Thread', 'Post', 'Message', 'BOARDS', 'BOARDS_ALL')
 
 from posixpath import join as url_join
 
@@ -145,23 +145,22 @@ class Post:
         return '<Post: {num}>'.format(num=self.num)
 
 
-class Message(object):
+class Message:
     """Message object"""
 
     # формирование пайлоада сообщения
-    def __init__(self, captcha_data, board_id, thread_id, comment, email=None, subject=None, name=None, usercode = None, bin_files = None):
-        '''
+    def __init__(self, board_id, thread_id, comment='', email='', subject='', name='', sage=False,
+                 bin_files=None):
+        """
         Офрмируется пайлоад, добавляются файлы при наличии
-        :param captcha_data: Капча
         :param board_id: Доска
         :param thread_id: Номер треда
         :param comment: Тело сообщения
         :param email: email
         :param subject: Тема
         :param name: Имя
-        :param usercode: Паскод, если есть
-        :param bin_file: Адрес файла
-        '''
+        :param bin_files: Список файлов 1-4 (1-8 при наличии пасскода)
+        """
         # формируем пайлоад
         self.payload = Dict({
             'json': 1,
@@ -169,34 +168,32 @@ class Message(object):
             'board': board_id,
             'thread': thread_id,
             'email': email,
-            'comment': comment,
-            'subject': subject,
             'name': name,
-            })
-
-        # при наличии паскода
-        if usercode:
-            self.payload.usercode = usercode
-        # при наличии капчи
-        else:
-            self.payload.update({
-                'captcha_type': '2chaptcha',
-                '2chaptcha_id': captcha_data.captcha_id,
-                '2chaptcha_value': captcha_data.captcha_answer
-                })
+            'subject': subject,
+            'comment': comment,
+            'sage': 1 if sage else 0
+        })
 
         self.files = Dict()
         # Добавляем файл при наличии
         if bin_files:
-            element_num = 1
-            for file in bin_files:
-                self.files.update({'image'+str(element_num): open(file, 'rb')})
-                element_num += 1
+            self.files.update({f'image{idx}': open(file, 'rb')} for idx, file in enumerate(bin_files, 1))
         else:
             self.files = {'': ''}
 
     def __repr__(self):
         return f'<Message: {self.payload}, Files: {self.files}>'
+
+
+class Captcha:
+
+    def __init__(self, captcha_id):
+        self.captcha_type = '2chaptcha'
+        self.captcha_id = captcha_id
+        self.captcha_value = None
+
+    def set_answer(self, answer):
+        self.captcha_value = int(answer)
 
 
 class CaptchaHelper:
@@ -211,52 +208,48 @@ class CaptchaHelper:
         """
 
         self.__Session = session
-        # переменная в которой будет содержаться словарь со значениями ID / captcha image link
-        self.captcha_image = None
-        self.captcha_id = None
-        self.captcha_answer = None
 
     # получение изображения капчи
-    def get_captcha_img(self):
+    def get_captcha(self):
         """
         Метод отвечает за получение изображения капчи
         :return: Возвращает словарь с полями содержащими ID капчи и изображение, либо же возбуждается ошибка
         """
 
         # получаем ID качи
-        captcha_response = Dict(self.__Session.get(f'api/captcha/2chaptcha/service_id'))
+        captcha_response = self.__Session.get(f'api/captcha/2chaptcha/service_id')
         if captcha_response.result == 1:
-            self.captcha_id = captcha_response.id
-            # получаем изображение капчи
-            captcha_image = self.__Session.get(f'api/captcha/2chaptcha/image/{captcha_response.id}')
+            captcha_id = captcha_response.id
 
-            self.captcha_image = captcha_image.content
-
-            return True
+            return Captcha(captcha_id)
         else:
             # TODO вызывать исключение при ошибке
             return False
 
+    def get_captcha_img(self, captcha):
+        captcha_image = self.__Session.get(f'api/captcha/2chaptcha/image/{captcha.captcha_id}').content
+        url = f'{URL}api/captcha/2chaptcha/image/{captcha.captcha_id}'
+
+        return Dict({'url': url, 'binary': captcha_image})
+
     # проверка капчи
-    def check_captcha(self, captcha_id, answer):
+    def check_captcha(self, captcha):
         """
         Метод отвечает за проверку правельности решения капчи
-        :param captcha_id: ID капчи из метода get_captcha_img
-        :param answer: Ответ пользователя на капчу
+
         :return: Возвращает True/False в зависимости от праильности решения
         """
         # check captcha
-        response = Dict(self.__Session.get(f'api/captcha/2chaptcha/check/{captcha_id}?value={answer}'))
+        response = self.__Session.get(f'api/captcha/2chaptcha/check/{captcha.captcha_id}?value={captcha.captcha_value}')
 
         # check captcha
         if response.result == 1:
-            self.captcha_answer = answer
             return True
         else:
             return False
 
 
-class Api:
+class DvachApi:
     """Api object"""
     _boards = {}
 
@@ -267,12 +260,11 @@ class Api:
 
         self.__Session = ApiSession(proxies=proxies, headers=headers)
         self.__get_all_settings()
-        self.logging = False
         self.__board = None
         self.board = board
         self.settings = None
         self.thread = None
-        self.Captcha = CaptchaHelper(self.__Session)
+        self.CaptchaHelper = CaptchaHelper(self.__Session)
         self.passcode_data = None
 
     @property
@@ -314,6 +306,7 @@ class Api:
         """
         if isinstance(thread, Thread):
             thread = thread.num
+
         self.thread = thread
 
         if not (board and self.board_exist(board)):  # pragma: no cover
@@ -345,10 +338,7 @@ class Api:
         else:
             return []
 
-        sorted_threads = []
-
-        for i in range(num):
-            sorted_threads.append(threads[i])
+        sorted_threads = [Thread(thread) for thread in threads[:num]]
 
         return sorted_threads
 
@@ -362,23 +352,23 @@ class Api:
 
         self.passcode_data = response.cookies['usercode_nocaptcha']
 
-    def send_post(self, thread, message_obj):
-        """
-        Метод  в качестве параметров принимает данные для формирования пайлода сообщения
-        :param thread: Номер треда
-        :return: Тело ответа сервера, при ошибке - возвращает False(будет возбуждать ошибку)
-        """
-        if isinstance(thread, Thread):
-            thread = thread.num
-        self.thread = thread
-        # TODO: Вот тут еще переделать проверку борды
-        if self.board and self.board_exist(self.board):  # pragma: no cover
-            self.board = self.board
+    def send_post(self, message, captcha=None, passcode=False):
+        if passcode:
+            message.payload.usercode = self.passcode_data
+        elif captcha:
+            captcha_payload = {
+                'captcha_type': captcha.captcha_type,
+                '2chaptcha_id': captcha.captcha_id,
+                '2chaptcha_value': captcha.captcha_value
+            }
+            message.payload.update(captcha_payload)
+        else:
+            return False
 
         try:
             response = self.__Session.post(url='makaba/posting.fcgi',
-                                           data=message_obj.payload,
-                                           files=message_obj.files)
+                                           data=message.payload,
+                                           files=message.files)
             return response
         except Exception as e:
             print('Error send post: {msg}'.format(msg=e))
