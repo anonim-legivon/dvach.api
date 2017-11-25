@@ -10,7 +10,6 @@ from simplejson import JSONDecodeError
 
 from .utils import listmerge
 
-# List sections on board
 BOARDS = {
     'thematics': ['bi', 'biz', 'bo', 'c', 'em', 'fa', 'fiz', 'fl', 'ftb', 'hi', 'me', 'mg', 'mlp', 'mo', 'ne', 'psy',
                   're', 'sf', 'sci', 'sn', 'sp', 'spc', 'tv', 'un', 'w', 'wh', 'wm', 'mov', 'rf', 'mu', 'au', 'zog',
@@ -65,6 +64,11 @@ class ApiSession:
                 return response
 
     def post(self, **kwargs):
+        """
+        Post url
+        :param kwargs: kwargs for request
+        :return: request response
+        """
         url = url_join(URL, kwargs['url'])
         try:
             response = self.session.post(url=url, data=kwargs['data'], files=kwargs['files'])
@@ -90,6 +94,7 @@ class ApiSession:
 
 class Board:
     """Board object"""
+
     __rows__ = ('bump_limit', 'category', 'default_name', 'enable_dices',
                 'enable_flags', 'enable_icons', 'enable_likes',
                 'enable_names', 'enable_oekaki', 'enable_posting',
@@ -127,6 +132,7 @@ class Thread:
 
 class Post:
     """Post object"""
+
     __rows__ = ('banned', 'closed', 'comment', 'date', 'email',
                 'endless', 'files', 'lasthit', 'name', 'num',
                 'number', 'op', 'parent', 'sticky', 'subject',
@@ -149,8 +155,7 @@ class Message:
     """Message object"""
 
     # формирование пайлоада сообщения
-    def __init__(self, board_id, thread_id, comment='', email='', subject='', name='', sage=False,
-                 bin_files=None):
+    def __init__(self, board_id, thread_id, comment='', email='', subject='', name='', sage=False, files=None):
         """
         Офрмируется пайлоад, добавляются файлы при наличии
         :param board_id: Доска
@@ -159,7 +164,8 @@ class Message:
         :param email: email
         :param subject: Тема
         :param name: Имя
-        :param bin_files: Список файлов 1-4 (1-8 при наличии пасскода)
+        :param sage: Вкл/Выкл сажу
+        :param files: Список файлов 1-4 (1-8 при наличии соответствующего пасскода)
         """
         # формируем пайлоад
         self.payload = Dict({
@@ -174,10 +180,10 @@ class Message:
             'sage': 1 if sage else 0
         })
 
-        self.files = Dict()
         # Добавляем файл при наличии
-        if bin_files:
-            self.files.update({f'image{idx}': open(file, 'rb')} for idx, file in enumerate(bin_files, 1))
+        # TODO: Тут еще глянуть, однострочник мне нравится, надо подумать с условием if
+        if files and 0 < len(files) <= 8:
+            self.files = {f'image{idx}': open(file, 'rb') for idx, file in enumerate(files, 1)}
         else:
             self.files = {'': ''}
 
@@ -186,6 +192,7 @@ class Message:
 
 
 class Captcha:
+    """Объект Captcha"""
 
     def __init__(self, captcha_id):
         self.captcha_type = '2chaptcha'
@@ -195,54 +202,51 @@ class Captcha:
     def set_answer(self, answer):
         self.captcha_value = int(answer)
 
+    def __repr__(self):
+        return f'Captcha type: {self.captcha_type}, Captcha ID: {self.captcha_id}, Captcha value: {self.captcha_value}>'
+
 
 class CaptchaHelper:
-    """
-    Класс отвечает за работу с капчёй.
-    """
+    """Класс помошник при работе с капчёй."""
 
     def __init__(self, session):
         """
-        Инициализирует подключение для капчи
+        Инициализирует сессию для капчи
         :param session: Сессия ApiSession
         """
-
         self.__Session = session
 
-    # получение изображения капчи
     def get_captcha(self):
         """
-        Метод отвечает за получение изображения капчи
-        :return: Возвращает словарь с полями содержащими ID капчи и изображение, либо же возбуждается ошибка
+        Метод отвечает за получение капчи
+        :return: Объект типа Captcha
         """
-
-        # получаем ID качи
         captcha_response = self.__Session.get(f'api/captcha/2chaptcha/service_id')
         if captcha_response.result == 1:
             captcha_id = captcha_response.id
 
             return Captcha(captcha_id)
         else:
-            # TODO вызывать исключение при ошибке
             return False
 
     def get_captcha_img(self, captcha):
+        """
+        Метод для получения изображение капчи
+        :param captcha: Объект типа Captcha
+        :return: Словарь с ссылкой на капчу и её бинарное представление
+        """
         captcha_image = self.__Session.get(f'api/captcha/2chaptcha/image/{captcha.captcha_id}').content
         url = f'{URL}api/captcha/2chaptcha/image/{captcha.captcha_id}'
 
         return Dict({'url': url, 'binary': captcha_image})
 
-    # проверка капчи
     def check_captcha(self, captcha):
         """
         Метод отвечает за проверку правельности решения капчи
-
-        :return: Возвращает True/False в зависимости от праильности решения
+        :return: Возвращает True/False в зависимости от праильности решения капчи
         """
-        # check captcha
         response = self.__Session.get(f'api/captcha/2chaptcha/check/{captcha.captcha_id}?value={captcha.captcha_value}')
 
-        # check captcha
         if response.result == 1:
             return True
         else:
@@ -250,12 +254,14 @@ class CaptchaHelper:
 
 
 class DvachApi:
-    """Api object"""
+    """Объект DvachApi"""
+
     _boards = {}
 
     def __init__(self, board='b', proxies=None, headers=None):
         """
-        :param board: board id. For example 'b'
+        Инициализация Api
+        :param board: ИД доски
         """
 
         self.__Session = ApiSession(proxies=proxies, headers=headers)
@@ -263,7 +269,6 @@ class DvachApi:
         self.__board = None
         self.board = board
         self.settings = None
-        self.thread = None
         self.CaptchaHelper = CaptchaHelper(self.__Session)
         self.passcode_data = None
 
@@ -289,7 +294,14 @@ class DvachApi:
             if board not in self._boards.keys():
                 self._boards[board] = Board({'id': board})
 
+        return True
+
     def get_board(self, board=None):
+        """
+        Получение списка тредов доски
+        :param board: ИД доски
+        :return: Список объектов типа Thread
+        """
         if not (board and self.board_exist(board)):  # pragma: no cover
             board = self.board.id
 
@@ -299,30 +311,28 @@ class DvachApi:
 
     def get_thread(self, thread, board=None):
         """
-        Get thread
-        :param thread: id of thread
-        :param board: id of board
-        :return: List of Posts object
+        Получения списка постов в треде
+        :param thread: Номер треда
+        :param board: ИД доски
+        :return: Список объектов типа Post
         """
         if isinstance(thread, Thread):
             thread = thread.num
 
-        self.thread = thread
-
         if not (board and self.board_exist(board)):  # pragma: no cover
             board = self.board.id
 
-        posts = self.__Session.get(board, f'res/{self.thread}.json').threads
+        posts = self.__Session.get(board, f'res/{thread}.json').threads
 
         return [Post(post) for post in posts[0].posts]
 
     def get_top(self, board=None, method='views', num=5):
         """
-        Top threads on board
-        :param board: board to get top
-        :param method: sorting method (views, score, posts)
-        :param num: num of threads to return
-        :return: list
+        Топ тредов доски по заданным критериям
+        :param board: Доска на которой нужно узнать топ тредов
+        :param method: Метод сортировки (views, score, posts)
+        :param num: Число тредов в топе
+        :return: Список объектов типа Thread
         """
         if not (board and self.board_exist(board)):  # pragma: no cover
             board = self.board.id
@@ -338,21 +348,31 @@ class DvachApi:
         else:
             return []
 
-        sorted_threads = [Thread(thread) for thread in threads[:num]]
-
-        return sorted_threads
+        return [Thread(thread) for thread in threads[:num]]
 
     def auth_passcode(self, usercode):
+        """
+        Авторизация пасскода
+        :param usercode: Пасскод
+        """
         url = url_join(URL, 'makaba/makaba.fcgi')
         payload = {
             'task': 'auth',
             'usercode': usercode
         }
         response = self.__Session.post(url=url, data=payload)
-
         self.passcode_data = response.cookies['usercode_nocaptcha']
 
+        return True
+
     def send_post(self, message, captcha=None, passcode=False):
+        """
+        Отправляет сообщение
+        :param message: Объект типа Message
+        :param captcha: Объект типа Captcha
+        :param passcode: Использовать ли passcode для отправки сообщения
+        :return: Ответ сервера в случае успеха
+        """
         if passcode:
             message.payload.usercode = self.passcode_data
         elif captcha:
@@ -369,22 +389,41 @@ class DvachApi:
             response = self.__Session.post(url='makaba/posting.fcgi',
                                            data=message.payload,
                                            files=message.files)
-            return response
         except Exception as e:
             print('Error send post: {msg}'.format(msg=e))
             return False
+        else:
+            return response
+        finally:
+            # TODO: Вот тут глянуть надо, может как нибудь упростить получиться.
+            if len(message.files):
+                for file in message.files.values():
+                    try:
+                        file.close()
+                    except AttributeError:
+                        continue
 
     def set_headers(self, headers=None):
+        """
+        Установка заголовка запросов на лету
+        :param headers:
+        """
         self.__Session.update_headers(headers)
+        return True
 
     def set_proxies(self, proxies=None):
+        """
+        Установка прокси на лету
+        :param proxies:
+        """
         self.__Session.update_proxies(proxies)
+        return True
 
     @staticmethod
     def board_exist(board):
         """
-        Checking exist section on board or not
-        :param board: name section. example('b')
+        Проверка существование доски в списке всех досок
+        :param board: ИД доски. Например 'b'
         :return: boolean
         """
         return board in BOARDS_ALL
