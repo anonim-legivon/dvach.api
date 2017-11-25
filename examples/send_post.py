@@ -2,7 +2,7 @@ from api2ch import DvachApi, Message
 
 api = DvachApi(board='test')
 
-helper = api.CaptchaHelper()
+helper = api.CaptchaHelper
 captcha = helper.get_captcha()
 
 print(helper.get_captcha_img(captcha).url)
