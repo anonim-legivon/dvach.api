@@ -145,13 +145,25 @@ class Post:
         return '<Post: {num}>'.format(num=self.num)
 
 
-class Message:
+class Message(object):
     """Message object"""
 
     # формирование пайлоада сообщения
-    @staticmethod
-    def create_payload(captcha_data, board_id, thread_id, comment, email=None, subject=None, name=None, usercode = None):
-        payload = {
+    def __init__(self, captcha_data, board_id, thread_id, comment, email=None, subject=None, name=None, usercode = None, bin_files = None):
+        '''
+        Офрмируется пайлоад, добавляются файлы при наличии
+        :param captcha_data: Капча
+        :param board_id: Доска
+        :param thread_id: Номер треда
+        :param comment: Тело сообщения
+        :param email: email
+        :param subject: Тема
+        :param name: Имя
+        :param usercode: Паскод, если есть
+        :param bin_file: Адрес файла
+        '''
+        # формируем пайлоад
+        self.payload = Dict({
             'json': 1,
             'task': 'post',
             'board': board_id,
@@ -160,36 +172,31 @@ class Message:
             'comment': comment,
             'subject': subject,
             'name': name,
+            })
 
-        }
+        # при наличии паскода
         if usercode:
-            payload.update({'usercode': usercode})
+            self.payload.usercode = usercode
+        # при наличии капчи
         else:
-            payload.update({
+            self.payload.update({
                 'captcha_type': '2chaptcha',
                 '2chaptcha_id': captcha_data.captcha_id,
                 '2chaptcha_value': captcha_data.captcha_answer
                 })
 
-        return payload
-
-    # прикрепление файлов
-    @staticmethod
-    def add_file(bin_files=None):
-        """
-        Метод добавляет файл(ы) для отправки их вместе с постом
-        :param bin_file: Адрес файла
-        :return: Возвращает JSON с файлом, готовый к передаче на сервер
-        """
+        self.files = Dict()
+        # Добавляем файл при наличии
         if bin_files:
             element_num = 1
-            files = {}
             for file in bin_files:
-                files.update({f'image{element_num}': open(file, 'rb')})
+                self.files.update({'image'+str(element_num): open(file, 'rb')})
                 element_num += 1
-            return files
         else:
-            return {'': ''}
+            self.files = {'': ''}
+
+    def __repr__(self):
+        return f'<Message: {self.payload}, Files: {self.files}>'
 
 
 class CaptchaHelper:
@@ -355,16 +362,10 @@ class Api:
 
         self.passcode_data = response.cookies['usercode_nocaptcha']
 
-    def send_post(self, thread, comment, captcha_data, files_list=None, subject=None, name=None, email=None):
+    def send_post(self, thread, message_obj):
         """
         Метод  в качестве параметров принимает данные для формирования пайлода сообщения
         :param thread: Номер треда
-        :param comment: Тело поста
-        :param captcha_data: addict.Dict() данные капчи от CaptchaHelper
-        :param bin_file: Ссылка на файл для прикрепления к посту
-        :param subject: Тема поста
-        :param name: Имя
-        :param email: Электронный адрес
         :return: Тело ответа сервера, при ошибке - возвращает False(будет возбуждать ошибку)
         """
         if isinstance(thread, Thread):
@@ -374,21 +375,10 @@ class Api:
         if self.board and self.board_exist(self.board):  # pragma: no cover
             self.board = self.board
 
-        message_payload = Message().create_payload(captcha_data=captcha_data,
-                                                   board_id=self.board.id,
-                                                   thread_id=thread,
-                                                   comment=comment,
-                                                   email=email,
-                                                   subject=subject,
-                                                   name=name)
-
-        # TODO доделать отправку файлов
-        message_file = Message().add_file(bin_files = files_list)
-
         try:
             response = self.__Session.post(url='makaba/posting.fcgi',
-                                           data=message_payload,
-                                           files=message_file)
+                                           data=message_obj.payload,
+                                           files=message_obj.files)
             return response
         except Exception as e:
             print('Error send post: {msg}'.format(msg=e))
