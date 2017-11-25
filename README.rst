@@ -25,7 +25,7 @@ Install
 Usage
 -----
 
-_Examples
+Examples_
 
 Bug tracker
 -----------
