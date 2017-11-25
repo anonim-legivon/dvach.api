@@ -166,7 +166,7 @@ class Message:
         :param subject: Тема
         :param name: Имя
         :param sage: Вкл/Выкл сажу
-        :param files: Список файлов 1-4 (1-8 при наличии соответствующего пасскода)
+        :param files: Список файлов 1-8 (обрежется до 1-4 без пасскода)
         """
         # формируем пайлоад
         self.payload = Dict({
@@ -180,16 +180,22 @@ class Message:
             'comment': comment,
             'sage': 1 if sage else 0
         })
-
+        self.files = {}
         # Добавляем файл при наличии
-        # TODO: Тут еще глянуть, однострочник мне нравится, надо подумать с условием if
+        # TODO: Однострочник не взлетел
         if files and 0 < len(files) <= 8:
-            self.files = {f'image{idx}': open(file, 'rb') for idx, file in enumerate(files, 1)}
+            try:
+                for file_name in files:
+                    file = open(file_name, 'rb')
+                    self.files[file.name] = file.read()  # Можно передавать любой filename, не обязательно imageX. Tested[+]
+                    file.close()                         # читаем-закрываем сразу
+            except Exception as e:
+                print("IO error:", e)
         else:
             self.files = {'': ''}
 
     def __repr__(self):
-        return f'<Message: {self.payload}, Files: {self.files}>'
+        return f'<Message: {self.payload}, Files: {self.files.keys() if self.files else 0}>'
 
 
 class Captcha:
@@ -383,6 +389,9 @@ class DvachApi:
                 '2chaptcha_value': captcha.captcha_value
             }
             message.payload.update(captcha_payload)
+            if message.files != {'':''}:        # TODO: Убираем лишние файлы, если капча или выбрасывать исключение?
+                while len(message.files) > 4:
+                    message.files.popitem()     # Удаляем с конца.
         else:
             return False
 
@@ -395,14 +404,6 @@ class DvachApi:
             return False
         else:
             return response
-        finally:
-            # TODO: Вот тут глянуть надо, может как нибудь упростить получиться.
-            if len(message.files):
-                for file in message.files.values():
-                    try:
-                        file.close()
-                    except AttributeError:
-                        continue
 
     def find_threads(self, board=None, patterns=None, antipatterns=None):
         """
