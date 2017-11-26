@@ -1,6 +1,6 @@
 """2ch.hk API"""
 
-__all__ = ('DvachApi', 'Board', 'Thread', 'Post', 'Message', 'BOARDS', 'BOARDS_ALL', 'URL')
+__all__ = ('DvachApi', 'Message', 'BOARDS', 'BOARDS_ALL', 'URL')
 
 from posixpath import join as url_join
 
@@ -141,7 +141,7 @@ class Thread:
         Create object from dict with thread info
         :param thread: dict with thread info
         """
-        self.reply_count = int(thread['posts_count'])
+        self.reply_count = thread.posts_count
         self.post = Post(thread)
         self.num = self.post.num
 
@@ -244,7 +244,7 @@ class Message:
             'sage': 1 if sage else 0
         })
 
-        self.files = {}
+        self.files = Dict({})
 
         # Добавляем файл при наличии
         if files and 0 < len(files) <= 8:
@@ -255,10 +255,10 @@ class Message:
             except Exception as e:
                 print("IO error:", e)
         else:
-            self.files = {'': ''}
+            self.files = Dict({'': ''})
 
     def __repr__(self):
-        return f'<Message: {self.payload}, Files: {self.files.keys() if self.files else 0}>'
+        return f'<Message: {self.payload}, Files: {self.files.keys() if self.files else []}>'
 
 
 class Captcha:
