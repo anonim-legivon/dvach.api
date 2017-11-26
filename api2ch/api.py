@@ -1,6 +1,6 @@
 """2ch.hk API"""
 
-__all__ = ('DvachApi', 'Message', 'BOARDS', 'BOARDS_ALL', 'URL')
+__all__ = ('DvachApi', 'Message', 'URL')
 
 from posixpath import join as url_join
 
@@ -105,16 +105,12 @@ class DvachApi:
 
     def __get_all_settings(self):
         all_settings = self.__Session.get('makaba/mobile.fcgi?task=get_boards')
-        userboards = self.__Session.get('userboards.json')
 
         for key in all_settings.keys():
             for settings in all_settings[key]:
                 self._boards[settings['id']] = Board(settings)
 
-        for u_board in userboards['boards']:
-            self._boards[u_board['id']] = Board(u_board)
-
-        for board in BOARDS_ALL:  # докидываем скрытых борд, на которые Абу не дает настроек
+        for board in HIDDEN:  # докидываем скрытых борд, на которые Абу не дает настроек
             if board not in self._boards.keys():
                 self._boards[board] = Board(Dict({'id': board}))
 
@@ -281,14 +277,13 @@ class DvachApi:
         self.__Session.update_proxies(proxies)
         return True
 
-    @staticmethod
-    def board_exist(board):
+    def board_exist(self, board):
         """
         Проверка существование доски в списке всех досок
         :param board: ИД доски. Например 'b'
         :return: boolean
         """
-        return board in BOARDS_ALL
+        return board in self._boards.keys()
 
     def __repr__(self):
         return f'<Api: {self.board.id}>'
