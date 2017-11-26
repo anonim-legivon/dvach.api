@@ -9,7 +9,7 @@ import requests
 from addict import Dict
 from simplejson import JSONDecodeError
 
-import api2ch.exceptions as ex
+from api2ch import exceptions as ex
 from .utils import listmerge
 
 
