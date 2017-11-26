@@ -243,16 +243,15 @@ class Message:
             'comment': comment,
             'sage': 1 if sage else 0
         })
+
         self.files = {}
+
         # Добавляем файл при наличии
-        # TODO: Однострочник не взлетел
         if files and 0 < len(files) <= 8:
             try:
                 for file_name in files:
-                    file = open(file_name, 'rb')
-                    self.files[
-                        file.name] = file.read()  # Можно передавать любой filename, не обязательно imageX. Tested[+]
-                    file.close()  # читаем-закрываем сразу
+                    with open(file_name, 'rb') as file:
+                        self.files[file.name] = file.read()
             except Exception as e:
                 print("IO error:", e)
         else:
