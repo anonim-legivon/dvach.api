@@ -1,6 +1,6 @@
 """2ch.hk API"""
 
-__all__ = ('DvachApi', 'Board', 'Thread', 'Post', 'Message', 'BOARDS', 'BOARDS_ALL')
+__all__ = ('DvachApi', 'Board', 'Thread', 'Post', 'Message', 'BOARDS', 'BOARDS_ALL', 'URL')
 
 from posixpath import join as url_join
 
@@ -95,20 +95,38 @@ class ApiSession:
 class Board:
     """Board object"""
 
-    __rows__ = ('bump_limit', 'category', 'default_name', 'enable_dices',
-                'enable_flags', 'enable_icons', 'enable_likes',
-                'enable_names', 'enable_oekaki', 'enable_posting',
-                'enable_sage', 'enable_shield', 'enable_subject', 'enable_thread_tags',
-                'enable_trips', 'icons', 'id', 'name', 'pages', 'sage', 'tripcodes')
+    __slots__ = ('bump_limit', 'category', 'default_name', 'enable_dices',
+                 'enable_flags', 'enable_icons', 'enable_likes',
+                 'enable_names', 'enable_oekaki', 'enable_posting',
+                 'enable_sage', 'enable_shield', 'enable_subject', 'enable_thread_tags',
+                 'enable_trips', 'icons', 'id', 'name', 'pages', 'sage', 'tripcodes')
 
     def __init__(self, settings):
         """
         Create object from dict with settings
         :param settings: dict with settings
         """
-        self.id = None
-        for key, value in settings.items():
-            setattr(self, key, value)
+        self.bump_limit = settings.bump_limit
+        self.category = settings.category
+        self.default_name = settings.default_name
+        self.enable_dices = settings.enable_dices
+        self.enable_flags = settings.enable_flags
+        self.enable_icons = settings.enable_icons
+        self.enable_likes = settings.enable_likes
+        self.enable_names = settings.enable_names
+        self.enable_oekaki = settings.enable_oekaki
+        self.enable_posting = settings.enable_posting
+        self.enable_sage = settings.enable_sage
+        self.enable_shield = settings.enable_shield
+        self.enable_subject = settings.enable_subject
+        self.enable_thread_tags = settings.enable_thread_tags
+        self.enable_trips = settings.trips
+        self.icons = settings.icons
+        self.id = settings.id
+        self.name = settings.name
+        self.pages = settings.pages
+        self.sage = settings.sage
+        self.tripcodes = settings.tripcodes
 
     def __repr__(self):  # pragma: no cover
         return '<Settings: {board}>'.format(board=self.id)
@@ -116,6 +134,7 @@ class Board:
 
 class Thread:
     """Thread object"""
+    __slots__ = ('reply_count', 'post', 'num')
 
     def __init__(self, thread):
         """
@@ -133,20 +152,34 @@ class Thread:
 class Post:
     """Post object"""
 
-    __rows__ = ('banned', 'closed', 'comment', 'date', 'email',
-                'endless', 'files', 'lasthit', 'name', 'num',
-                'number', 'op', 'parent', 'sticky', 'subject',
-                'tags', 'timestamp', 'trip')
+    __slots__ = ('banned', 'closed', 'comment', 'date', 'email',
+                 'endless', 'files', 'lasthit', 'name', 'num',
+                 'number', 'op', 'parent', 'sticky', 'subject',
+                 'tags', 'timestamp', 'trip')
 
     def __init__(self, post):
         """
         Create object from dict with post info
         :param post: dict with post info
         """
-        self.comment = None
-        self.num = None
-        for key, value in post.items():
-            setattr(self, key, value)
+        self.banned = post.banned
+        self.closed = post.closed
+        self.comment = post.comment
+        self.date = post.date
+        self.email = post.email
+        self.endless = post.endless
+        self.files = post.files
+        self.lasthit = post.lasthit
+        self.name = post.name
+        self.num = post.num
+        self.number = post.number
+        self.op = post.op
+        self.parent = post.parent
+        self.sticky = post.sticky
+        self.subject = post.subject
+        self.tags = post.tags
+        self.timestamp = post.timestamp
+        self.trip = post.trip
 
     def __repr__(self):
         return '<Post: {num}>'.format(num=self.num)
@@ -300,7 +333,7 @@ class DvachApi:
 
         for board in BOARDS_ALL:  # докидываем скрытых борд, на которые Абу не дает настроек
             if board not in self._boards.keys():
-                self._boards[board] = Board({'id': board})
+                self._boards[board] = Board(Dict({'id': board}))
 
         return True
 
@@ -426,6 +459,7 @@ class DvachApi:
         if isinstance(thread, Thread):
             thread = thread.num
 
+        # TODO: Тут покрасивее сделать надо
         if thread:
             posts = self.get_thread(board=board, thread=thread)
             matched = [post for post in posts if any(subs in post.comment.lower() for subs in patterns) and all(
