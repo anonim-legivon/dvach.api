@@ -187,8 +187,9 @@ class Message:
             try:
                 for file_name in files:
                     file = open(file_name, 'rb')
-                    self.files[file.name] = file.read()  # Можно передавать любой filename, не обязательно imageX. Tested[+]
-                    file.close()                         # читаем-закрываем сразу
+                    self.files[
+                        file.name] = file.read()  # Можно передавать любой filename, не обязательно imageX. Tested[+]
+                    file.close()  # читаем-закрываем сразу
             except Exception as e:
                 print("IO error:", e)
         else:
@@ -389,9 +390,9 @@ class DvachApi:
                 '2chaptcha_value': captcha.captcha_value
             }
             message.payload.update(captcha_payload)
-            if message.files != {'':''}:        # TODO: Убираем лишние файлы, если капча или выбрасывать исключение?
+            if message.files != {'': ''}:  # TODO: Убираем лишние файлы, если капча или выбрасывать исключение?
                 while len(message.files) > 4:
-                    message.files.popitem()     # Удаляем с конца.
+                    message.files.popitem()
         else:
             return False
 
@@ -405,10 +406,11 @@ class DvachApi:
         else:
             return response
 
-    def find_threads(self, board=None, patterns=None, antipatterns=None):
+    def find(self, board=None, thread=None, patterns=None, antipatterns=None):
         """
         Поиск тредов по заданным строкам в шапке
-        :param board: ИД борды
+        :param board: ИД борды на которой нужно искать тред по заданным строкам в ОП-посте
+        :param thread: ИД треда или объект типа Thread в постах которого нужно провести поиск
         :param patterns: Список фраз для поиска в шапке
         :param antipatterns: Список фраз которые не должны всречаться в шапке
         :return: Список тредов удовлетворяющих условиям
@@ -421,13 +423,20 @@ class DvachApi:
         if not (board and self.board_exist(board)):  # pragma: no cover
             board = self.board.id
 
-        threads = self.get_board(board)
+        if isinstance(thread, Thread):
+            thread = thread.num
 
-        matched_threads = [thread for thread in threads if
-                           any(subs in thread.post.comment.lower() for subs in patterns) and all(
-                               subs not in thread.post.comment.lower() for subs in antipatterns)]
+        if thread:
+            posts = self.get_thread(board=board, thread=thread)
+            matched = [post for post in posts if any(subs in post.comment.lower() for subs in patterns) and all(
+                subs not in post.comment.lower for subs in antipatterns)]
+        else:
+            threads = self.get_board(board=board)
+            matched = [thread for thread in threads if
+                       any(subs in thread.post.comment.lower() for subs in patterns) and all(
+                           subs not in thread.post.comment.lower() for subs in antipatterns)]
 
-        return matched_threads
+        return matched
 
     def set_headers(self, headers=None):
         """
