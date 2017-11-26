@@ -1,4 +1,6 @@
-from api2ch import DvachApi, Message
+from api2ch.api import DvachApi, ApiSession
+from api2ch.boards import Message
+from api2ch.captcha import CaptchaHelper
 
 api = DvachApi(board='test')
 
@@ -13,8 +15,9 @@ print(api.send_post(message = message, captcha = True))
 print(api.send_post(message = message, passcode = True))
 
 '''
+api_session = ApiSession()
 
-helper = api.CaptchaHelper
+helper = CaptchaHelper(api_session.session)
 captcha = helper.get_captcha()
 
 print(helper.get_captcha_img(captcha).url)
