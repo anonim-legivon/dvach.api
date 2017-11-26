@@ -12,6 +12,7 @@ from simplejson import JSONDecodeError
 from .exceptions import ExtraFilesError, FileSizeError, AuthRequiredError
 from .utils import listmerge
 
+
 BOARDS = {
     'thematics': ['bi', 'biz', 'bo', 'c', 'em', 'fa', 'fiz', 'fl', 'ftb', 'hi', 'me', 'mg', 'mlp', 'mo', 'ne', 'psy',
                   're', 'sf', 'sci', 'sn', 'sp', 'spc', 'tv', 'un', 'w', 'wh', 'wm', 'mov', 'rf', 'mu', 'au', 'zog',
