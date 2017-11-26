@@ -441,7 +441,7 @@ class DvachApi:
 
         return True
 
-    def send_post(self, message, captcha=None, passcode=None):
+    def send_post(self, message, captcha=False, passcode=False):
         """
         Отправляет сообщение
         :param message: Объект типа Message
