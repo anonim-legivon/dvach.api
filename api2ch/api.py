@@ -30,7 +30,7 @@ BOARDS = {
 
 BOARDS_ALL = listmerge(BOARDS)
 
-URL = 'https://2ch.hk/'
+URL = 'https://2ch.hk'
 
 
 class ApiSession:
@@ -129,7 +129,7 @@ class Board:
         self.tripcodes = settings.tripcodes
 
     def __repr__(self):  # pragma: no cover
-        return '<Settings: {board}>'.format(board=self.id)
+        return f'<Settings: {self.id}>'
 
 
 class Thread:
@@ -146,7 +146,7 @@ class Thread:
         self.num = self.post.num
 
     def __repr__(self):
-        return '<Thread: {num}>'.format(num=self.num)
+        return f'<Thread: {self.num}>'
 
 
 class Post:
@@ -168,7 +168,7 @@ class Post:
         self.date = post.date
         self.email = post.email
         self.endless = post.endless
-        self.files = post.files
+        self.files = [File(Dict(file)) for file in post.files]
         self.lasthit = post.lasthit
         self.name = post.name
         self.num = post.num
@@ -182,7 +182,37 @@ class Post:
         self.trip = post.trip
 
     def __repr__(self):
-        return '<Post: {num}>'.format(num=self.num)
+        return f'<Post: {self.num}>'
+
+
+class File:
+    """File object"""
+
+    __slots__ = ('displayname', 'fullname', 'height', 'md5', 'name',
+                 'nsfw', 'path', 'size', 'thumbnail', 'tn_height',
+                 'tn_width', 'type', 'width')
+
+    def __init__(self, file):
+        """
+        Create file object from dict of file params
+        :param file: dict of file params
+        """
+        self.displayname = file.displayname
+        self.fullname = file.fullname
+        self.height = file.height
+        self.md5 = file.md5
+        self.name = file.name
+        self.nsfw = file.nsfw
+        self.path = file.path
+        self.size = file.size
+        self.thumbnail = file.thumbnail
+        self.tn_height = file.tn_height
+        self.tn_width = file.tn_width
+        self.type = file.type
+        self.width = file.width
+
+    def __repr__(self):
+        return f'<File: {self.name}>'
 
 
 class Message:
@@ -304,7 +334,6 @@ class DvachApi:
         Инициализация Api
         :param board: ИД доски
         """
-
         self.__Session = ApiSession(proxies=proxies, headers=headers)
         self.__get_all_settings()
         self.__board = None
@@ -498,4 +527,4 @@ class DvachApi:
         return board in BOARDS_ALL
 
     def __repr__(self):
-        return '<Api: {board}>'.format(board=self.board.id)
+        return f'<Api: {self.board.id}>'
