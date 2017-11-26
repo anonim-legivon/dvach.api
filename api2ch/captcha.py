@@ -1,9 +1,10 @@
 import json
-from addict import Dict
 from posixpath import join as url_join
-from .exceptions import CaptchaValueError
 
-URL = 'https://2ch.hk'
+from addict import Dict
+
+from .exceptions import CaptchaValueError
+from .helpers import *
 
 
 class Captcha:
@@ -17,7 +18,9 @@ class Captcha:
     def set_answer(self, answer):
         self.captcha_value = answer
 
-        if not type(self.captcha_value) == int:
+        try:
+            self.captcha_value = int(answer)
+        except ValueError:
             raise CaptchaValueError
 
     def __repr__(self):

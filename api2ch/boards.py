@@ -1,9 +1,6 @@
-from .utils import listmerge
-from addict import Dict
 import os
 
-
-HIDDEN = ['test']
+from addict import Dict
 
 
 class Board:
@@ -156,7 +153,7 @@ class Message:
             'subject': subject,
             'comment': comment,
             'sage': 1 if sage else 0
-            })
+        })
 
         self.files = {}
 

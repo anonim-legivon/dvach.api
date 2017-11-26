@@ -2,76 +2,11 @@
 
 __all__ = ('DvachApi', 'Message', 'URL')
 
-from posixpath import join as url_join
-
-import requests
-from simplejson import JSONDecodeError
-
-from .boards import *
 import api2ch.exceptions as ex
+from .boards import *
 from .captcha import CaptchaHelper
-
-
-URL = 'https://2ch.hk'
-
-
-class ApiSession:
-    HEADERS = {
-        'User-agent': 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) '
-                      'Gecko/20100101 Firefox/52.0'
-    }
-
-    def __init__(self, proxies=None, headers=None):
-        self.session = requests.Session()
-        self.session.headers.update(headers if headers else self.HEADERS)
-        if proxies:
-            self.session.proxies.update(proxies)
-
-    def get(self, *args):
-        """
-        Get url
-        :param args: args for request
-        :return:
-        """
-        url = url_join(URL, *args)
-        try:
-            response = self.session.get(url=url)
-        except Exception as e:
-            print('Something goes wrong:', e)
-            return None
-        else:
-            try:
-                return Dict(response.json())
-            except JSONDecodeError:
-                return response
-
-    def post(self, **kwargs):
-        """
-        Post url
-        :param kwargs: kwargs for request
-        :return: request response
-        """
-        url = url_join(URL, kwargs['url'])
-        try:
-            response = self.session.post(url=url, data=kwargs['data'], files=kwargs['files'])
-        except Exception as e:
-            print('Something goes wrong:', e)
-            return None
-        else:
-            try:
-                return Dict(response.json())
-            except JSONDecodeError:
-                return response
-
-    def update_headers(self, headers):
-        if headers:
-            self.session.headers.clear()
-            self.session.headers.update(headers if headers else self.HEADERS)
-
-    def update_proxies(self, proxies):
-        if proxies:
-            self.session.proxies.clear()
-            self.session.proxies.update(proxies)
+from .helpers import *
+from .session import *
 
 
 class DvachApi:
@@ -110,7 +45,7 @@ class DvachApi:
             for settings in all_settings[key]:
                 self._boards[settings['id']] = Board(settings)
 
-        for board in HIDDEN:  # докидываем скрытых борд, на которые Абу не дает настроек
+        for board in HIDDEN_BOARDS:  # докидываем скрытых борд, на которые Абу не дает настроек
             if board not in self._boards.keys():
                 self._boards[board] = Board(Dict({'id': board}))
 
@@ -185,7 +120,7 @@ class DvachApi:
 
         return True
 
-    def send_post(self, message, captcha=False, passcode=False):
+    def send_post(self, message, captcha=None, passcode=False):
         """
         Отправляет сообщение
         :param message: Объект типа Message
@@ -198,23 +133,23 @@ class DvachApi:
             # при наличии файлов- проверяем их
             if message.files != {'': ''}:
                 if len(message.files) > 8:
-                    raise ex.ExtraFilesError(files_len = len(message.files), passcode = True)
+                    raise ex.ExtraFilesError(files_len=len(message.files), passcode=True)
                 elif message.filesize.size > 60:
-                    raise ex.FileSizeError(files_size = message.filesize.size, passcode = True)
+                    raise ex.FileSizeError(files_size=message.filesize.size, passcode=True)
 
         elif captcha:
             captcha_payload = {
                 'captcha_type': captcha.captcha_type,
                 '2chaptcha_id': captcha.captcha_id,
                 '2chaptcha_value': captcha.captcha_value
-                }
+            }
             message.payload.update(captcha_payload)
             # при наличии файлов проверяем их
             if message.files != {'': ''}:
                 if len(message.files) > 4:
-                    raise ex.ExtraFilesError(files_len = len(message.files), passcode = False)
+                    raise ex.ExtraFilesError(files_len=len(message.files), passcode=False)
                 elif message.filesize.size > 20:
-                    raise ex.FileSizeError(files_size = message.filesize.size, passcode = False)
+                    raise ex.FileSizeError(files_size=message.filesize.size, passcode=False)
         else:
             raise ex.AuthRequiredError()
 
