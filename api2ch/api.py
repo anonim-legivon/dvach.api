@@ -4,12 +4,12 @@ __all__ = ('DvachApi', 'Message', 'BOARDS', 'BOARDS_ALL', 'URL')
 
 from posixpath import join as url_join
 
-import requests
 import os
+import requests
 from addict import Dict
 from simplejson import JSONDecodeError
 
-from .exceptions import ExtraFilesError, FileSizeError, AuthRequiredError
+import api2ch.exceptions as ex
 from .utils import listmerge
 
 
@@ -455,9 +455,9 @@ class DvachApi:
             # при наличии файлов- проверяем их
             if message.files != {'': ''}:
                 if len(message.files) > 8:
-                    raise ExtraFilesError(files_len = len(message.files), passcode = True)
+                    raise ex.ExtraFilesError(files_len = len(message.files), passcode = True)
                 elif message.filesize.size > 60:
-                    raise FileSizeError(files_size = message.filesize.size, passcode = True)
+                    raise ex.FileSizeError(files_size = message.filesize.size, passcode = True)
 
         elif captcha:
             captcha_payload = {
@@ -469,11 +469,11 @@ class DvachApi:
             # при наличии файлов проверяем их
             if message.files != {'': ''}:
                 if len(message.files) > 4:
-                    raise ExtraFilesError(files_len = len(message.files), passcode = False)
+                    raise ex.ExtraFilesError(files_len = len(message.files), passcode = False)
                 elif message.filesize.size > 20:
-                    raise FileSizeError(files_size = message.filesize.size, passcode = False)
+                    raise ex.FileSizeError(files_size = message.filesize.size, passcode = False)
         else:
-            raise AuthRequiredError()
+            raise ex.AuthRequiredError()
 
         try:
             response = self.__Session.post(url='makaba/posting.fcgi',
