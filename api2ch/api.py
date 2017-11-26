@@ -5,9 +5,11 @@ __all__ = ('DvachApi', 'Message', 'BOARDS', 'BOARDS_ALL', 'URL')
 from posixpath import join as url_join
 
 import requests
+import os
 from addict import Dict
 from simplejson import JSONDecodeError
 
+from .exceptions import ExtraFilesError, FileSizeError, AuthRequiredError
 from .utils import listmerge
 
 BOARDS = {
@@ -242,23 +244,28 @@ class Message:
             'subject': subject,
             'comment': comment,
             'sage': 1 if sage else 0
-        })
+            })
 
         self.files = {}
 
         # Добавляем файл при наличии
         if files and 0 < len(files) <= 8:
+            # а переменной files по ключу filesize - хранится размер файлов для передачи
+            self.filesize = Dict({'size': 0})
             try:
                 for file_name in files:
                     with open(file_name, 'rb') as file:
                         self.files[file.name] = file.read()
+                    # определяем размер файла и добавляем его к общему объёму файлов
+                    self.filesize.size += os.path.getsize(file_name) / 1000000
             except Exception as e:
                 print("IO error:", e)
         else:
             self.files = {'': ''}
 
     def __repr__(self):
-        return f'<Message: {self.payload}, Files: {self.files.keys() if self.files else []}>'
+        return f'<Message: {self.payload}, Files: {self.files.keys() if self.files else []}, ' \
+               f'File_Size: {self.filesize if self.files else []}>'
 
 
 class Captcha:
@@ -306,7 +313,7 @@ class CaptchaHelper:
         :return: Словарь с ссылкой на капчу и её бинарное представление
         """
         captcha_image = self.__Session.get(f'api/captcha/2chaptcha/image/{captcha.captcha_id}').content
-        url = f'{URL}api/captcha/2chaptcha/image/{captcha.captcha_id}'
+        url = f'{URL}/api/captcha/2chaptcha/image/{captcha.captcha_id}'
 
         return Dict({'url': url, 'binary': captcha_image})
 
@@ -434,7 +441,7 @@ class DvachApi:
 
         return True
 
-    def send_post(self, message, captcha=None, passcode=False):
+    def send_post(self, message, captcha=None, passcode=None):
         """
         Отправляет сообщение
         :param message: Объект типа Message
@@ -444,18 +451,28 @@ class DvachApi:
         """
         if passcode:
             message.payload.usercode = self.passcode_data
+            # при наличии файлов- проверяем их
+            if message.files != {'': ''}:
+                if len(message.files) > 8:
+                    raise ExtraFilesError(files_len = len(message.files), passcode = True)
+                elif message.filesize.size > 60:
+                    raise FileSizeError(files_size = message.filesize.size, passcode = True)
+
         elif captcha:
             captcha_payload = {
                 'captcha_type': captcha.captcha_type,
                 '2chaptcha_id': captcha.captcha_id,
                 '2chaptcha_value': captcha.captcha_value
-            }
+                }
             message.payload.update(captcha_payload)
-            if message.files != {'': ''}:  # TODO: Убираем лишние файлы, если капча или выбрасывать исключение?
-                while len(message.files) > 4:
-                    message.files.popitem()
+            # при наличии файлов проверяем их
+            if message.files != {'': ''}:
+                if len(message.files) > 4:
+                    raise ExtraFilesError(files_len = len(message.files), passcode = False)
+                elif message.filesize.size > 20:
+                    raise FileSizeError(files_size = message.filesize.size, passcode = False)
         else:
-            return False
+            raise AuthRequiredError()
 
         try:
             response = self.__Session.post(url='makaba/posting.fcgi',
