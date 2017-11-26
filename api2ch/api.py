@@ -166,7 +166,7 @@ class Message:
         :param subject: Тема
         :param name: Имя
         :param sage: Вкл/Выкл сажу
-        :param files: Список файлов 1-4 (1-8 при наличии соответствующего пасскода)
+        :param files: Список файлов 1-8 (обрежется до 1-4 без пасскода)
         """
         # формируем пайлоад
         self.payload = Dict({
@@ -180,16 +180,23 @@ class Message:
             'comment': comment,
             'sage': 1 if sage else 0
         })
-
+        self.files = {}
         # Добавляем файл при наличии
-        # TODO: Тут еще глянуть, однострочник мне нравится, надо подумать с условием if
+        # TODO: Однострочник не взлетел
         if files and 0 < len(files) <= 8:
-            self.files = {f'image{idx}': open(file, 'rb') for idx, file in enumerate(files, 1)}
+            try:
+                for file_name in files:
+                    file = open(file_name, 'rb')
+                    self.files[
+                        file.name] = file.read()  # Можно передавать любой filename, не обязательно imageX. Tested[+]
+                    file.close()  # читаем-закрываем сразу
+            except Exception as e:
+                print("IO error:", e)
         else:
             self.files = {'': ''}
 
     def __repr__(self):
-        return f'<Message: {self.payload}, Files: {self.files}>'
+        return f'<Message: {self.payload}, Files: {self.files.keys() if self.files else 0}>'
 
 
 class Captcha:
@@ -383,6 +390,9 @@ class DvachApi:
                 '2chaptcha_value': captcha.captcha_value
             }
             message.payload.update(captcha_payload)
+            if message.files != {'': ''}:  # TODO: Убираем лишние файлы, если капча или выбрасывать исключение?
+                while len(message.files) > 4:
+                    message.files.popitem()
         else:
             return False
 
@@ -395,19 +405,12 @@ class DvachApi:
             return False
         else:
             return response
-        finally:
-            # TODO: Вот тут глянуть надо, может как нибудь упростить получиться.
-            if len(message.files):
-                for file in message.files.values():
-                    try:
-                        file.close()
-                    except AttributeError:
-                        continue
 
-    def find_threads(self, board=None, patterns=None, antipatterns=None):
+    def find(self, board=None, thread=None, patterns=None, antipatterns=None):
         """
         Поиск тредов по заданным строкам в шапке
-        :param board: ИД борды
+        :param board: ИД борды на которой нужно искать тред по заданным строкам в ОП-посте
+        :param thread: ИД треда или объект типа Thread в постах которого нужно провести поиск
         :param patterns: Список фраз для поиска в шапке
         :param antipatterns: Список фраз которые не должны всречаться в шапке
         :return: Список тредов удовлетворяющих условиям
@@ -420,13 +423,20 @@ class DvachApi:
         if not (board and self.board_exist(board)):  # pragma: no cover
             board = self.board.id
 
-        threads = self.get_board(board)
+        if isinstance(thread, Thread):
+            thread = thread.num
 
-        matched_threads = [thread for thread in threads if
-                           any(subs in thread.post.comment.lower() for subs in patterns) and all(
-                               subs not in thread.post.comment.lower() for subs in antipatterns)]
+        if thread:
+            posts = self.get_thread(board=board, thread=thread)
+            matched = [post for post in posts if any(subs in post.comment.lower() for subs in patterns) and all(
+                subs not in post.comment.lower for subs in antipatterns)]
+        else:
+            threads = self.get_board(board=board)
+            matched = [thread for thread in threads if
+                       any(subs in thread.post.comment.lower() for subs in patterns) and all(
+                           subs not in thread.post.comment.lower() for subs in antipatterns)]
 
-        return matched_threads
+        return matched
 
     def set_headers(self, headers=None):
         """
