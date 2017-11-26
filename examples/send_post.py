@@ -1,4 +1,19 @@
 from api2ch import DvachApi, Message
+from api2ch import errors
+
+# искусственный пример пораждения ошибки ExtraFilesError(переизбыток файлов при отсутствии пасскода)
+files = ['2.jpg', '3.jpg', '2.jpg', '3.jpg', '3.jpg','2.jpg', '3.jpg', '3.jpg','2.jpg', '3.jpg']
+passcode = True
+
+if passcode and len(files) < 9:
+    print('GJ!')
+elif len(files) > 4 and not passcode:
+    # TODO в рабочем коде `print` заменить на `raise`
+    print(errors.ExtraFilesError(files_len = len(files), passcode = False))
+elif passcode and len(files) > 9:
+    # TODO в рабочем коде `print` заменить на `raise`
+    raise errors.ExtraFilesError(files_len = len(files), passcode = True)
+# конец искусственного примера
 
 api = DvachApi(board='test')
 
