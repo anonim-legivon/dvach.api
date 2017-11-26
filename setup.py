@@ -28,7 +28,7 @@ setup(
     long_description=long_description,
     keywords='dvach 2ch 2ch.hk api wrapper',
     classifiers=[
-        'Development Status :: 3 - Beta',
+        'Development Status :: 4 - Beta',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
