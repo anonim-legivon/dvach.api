@@ -1,4 +1,4 @@
 from .api import *
 
 __author__ = 'anonim-legivon'
-__version__ = '0.0.6'
+__version__ = '0.9.0'
