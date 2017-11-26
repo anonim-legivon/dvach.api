@@ -244,7 +244,7 @@ class Message:
             'sage': 1 if sage else 0
         })
 
-        self.files = Dict({})
+        self.files = {}
 
         # Добавляем файл при наличии
         if files and 0 < len(files) <= 8:
@@ -255,7 +255,7 @@ class Message:
             except Exception as e:
                 print("IO error:", e)
         else:
-            self.files = Dict({'': ''})
+            self.files = {'': ''}
 
     def __repr__(self):
         return f'<Message: {self.payload}, Files: {self.files.keys() if self.files else []}>'
