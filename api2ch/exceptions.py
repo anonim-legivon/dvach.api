@@ -3,15 +3,6 @@ class ChanApiException(Exception):
     pass
 
 
-class ChanApiError(ChanApiException):
-    __slots__ = ['Error', 'Reason']
-
-    def __init__(self, chan_error_data):
-        super(ChanApiError, self).__init__()
-        self.error_data = chan_error_data
-        pass
-
-
 class ExtraFilesError(ChanApiException):
     def __init__(self, files_len, passcode):
         ChanApiException.__init__(self, f"""
