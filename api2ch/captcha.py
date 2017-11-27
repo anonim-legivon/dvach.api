@@ -15,11 +15,6 @@ class Captcha:
     def set_answer(self, answer):
         self.captcha_value = answer
 
-        try:
-            self.captcha_value = int(answer)
-        except ValueError:
-            raise CaptchaValueError
-
     def __repr__(self):
         return f'Captcha type: {self.captcha_type}, Captcha ID: {self.captcha_id}, Captcha value: {self.captcha_value}>'
 

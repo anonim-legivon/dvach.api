@@ -2,12 +2,6 @@ class ChanApiException(Exception):
     pass
 
 
-class CaptchaValueError(Exception):
-    def __init__(self):
-        ChanApiException.__init__(self, f"""
-        \nЗначение должно быть целочисленным числом""")
-
-
 class ExtraFilesError(ChanApiException):
     def __init__(self, files_len, passcode):
         ChanApiException.__init__(self, f"""

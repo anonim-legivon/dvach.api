@@ -29,7 +29,8 @@ message = Message(board_id=api.board.id, thread_id=6476, comment='Abu nyasha', s
 if helper.check_captcha(captcha):
     print('OK')
     print(api.send_post(message=message, captcha=captcha))
-
+else:
+    print('Wrong value')
 # искусстыенный пример для тестирования отправки файлом при наличии пасскода
 '''
 message = Message(board_id=api.board.id, thread_id=6476, comment='Abu nyasha', sage=True, files=['12Mb_file.mp4', 
