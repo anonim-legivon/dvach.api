@@ -1,6 +1,4 @@
 from addict import Dict
-
-from .exceptions import CaptchaValueError
 from .helpers import *
 
 
