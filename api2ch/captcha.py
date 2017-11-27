@@ -1,4 +1,3 @@
-import json
 from posixpath import join as url_join
 
 from addict import Dict
@@ -43,10 +42,10 @@ class CaptchaHelper:
         :return: Объект типа Captcha
         """
 
-        captcha_response = self.__Session.get(url_join(URL, f'api/captcha/2chaptcha/service_id')).content
-        if json.loads(captcha_response)['result'] == 1:
-            captcha_id = json.loads(captcha_response)['id']
+        captcha_response = Dict(self.__Session.get(url_join(URL, f'api/captcha/2chaptcha/service_id')).json())
 
+        if captcha_response.result == 1:
+            captcha_id = captcha_response.id
             return Captcha(captcha_id)
         else:
             return False
@@ -69,11 +68,11 @@ class CaptchaHelper:
         Метод отвечает за проверку правельности решения капчи
         :return: Возвращает True/False в зависимости от праильности решения капчи
         """
-        response = self.__Session.get(
+        response = Dict(self.__Session.get(
             url_join(URL, f'api/captcha/2chaptcha/check/{captcha.captcha_id}?value={captcha.captcha_value}')
-        ).content
+        ).json())
 
-        if json.loads(response)['result'] == 1:
+        if response.result == 1:
             return True
         else:
             return False
