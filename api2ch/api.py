@@ -39,7 +39,7 @@ class DvachApi:
             self.__board = None
 
     def __get_all_settings(self):
-        all_settings = self.__Session.get('makaba/mobile.fcgi?task=get_boards')
+        all_settings = self.__Session.request(url=f'{URL}/makaba/mobile.fcgi?task=get_boards')
 
         for key in all_settings.keys():
             for settings in all_settings[key]:
@@ -60,7 +60,7 @@ class DvachApi:
         if not (board and self.board_exist(board)):  # pragma: no cover
             board = self.board.id
 
-        threads = self.__Session.get(board, 'threads.json').threads
+        threads = self.__Session.request(url=f'{URL}/{board}/threads.json').threads
 
         return [Thread(thread) for thread in threads]
 
@@ -77,7 +77,7 @@ class DvachApi:
         if not (board and self.board_exist(board)):  # pragma: no cover
             board = self.board.id
 
-        posts = self.__Session.get(board, f'res/{thread}.json').threads
+        posts = self.__Session.request(url=f'{URL}/{board}/res/{thread}.json').threads
 
         return [Post(post) for post in posts[0].posts]
 
@@ -92,7 +92,7 @@ class DvachApi:
         if not (board and self.board_exist(board)):  # pragma: no cover
             board = self.board.id
 
-        threads = self.__Session.get(board, 'threads.json').threads
+        threads = self.__Session.request(url=f'{URL}/{board}/threads.json').threads
 
         if method == 'views':
             threads = sorted(threads, key=lambda thread: (thread['views'], thread['score']), reverse=True)
@@ -110,12 +110,12 @@ class DvachApi:
         Авторизация пасскода
         :param usercode: Пасскод
         """
-        url = url_join(URL, 'makaba/makaba.fcgi')
+        url = f'{URL}/makaba/makaba.fcgi'
         payload = {
             'task': 'auth',
             'usercode': usercode
         }
-        response = self.__Session.post(url=url, data=payload)
+        response = self.__Session.request(method='post', url=url, data=payload)
         self.passcode_data = response.cookies['usercode_nocaptcha']
 
         return True
@@ -154,9 +154,9 @@ class DvachApi:
             raise ex.AuthRequiredError()
 
         try:
-            response = self.__Session.post(url='makaba/posting.fcgi',
-                                           data=message.payload,
-                                           files=message.files)
+            response = self.__Session.request(method='post', url=f'{URL}/makaba/posting.fcgi',
+                                              data=message.payload,
+                                              files=message.files)
         except Exception as e:
             print('Error send post: {msg}'.format(msg=e))
             return False

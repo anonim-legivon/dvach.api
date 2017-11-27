@@ -19,6 +19,14 @@ class ApiSession:
         if proxies:
             self.session.proxies.update(proxies)
 
+    def request(self, method='get', url=None, **kwargs):
+        response = self.session.request(method=method, url=url, **kwargs)
+
+        try:
+            return Dict(response.json())
+        except JSONDecodeError:
+            return response
+
     def get(self, *args):
         """
         Get url

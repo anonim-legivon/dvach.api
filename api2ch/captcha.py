@@ -1,5 +1,3 @@
-from posixpath import join as url_join
-
 from addict import Dict
 
 from .exceptions import CaptchaValueError
@@ -42,7 +40,8 @@ class CaptchaHelper:
         :return: Объект типа Captcha
         """
 
-        captcha_response = Dict(self.__Session.get(url_join(URL, f'api/captcha/2chaptcha/service_id')).json())
+        captcha_response = Dict(
+            self.__Session.request(method='get', url=f'{URL}/api/captcha/2chaptcha/service_id').json())
 
         if captcha_response.result == 1:
             captcha_id = captcha_response.id
@@ -56,9 +55,8 @@ class CaptchaHelper:
         :param captcha: Объект типа Captcha
         :return: Словарь с ссылкой на капчу и её бинарное представление
         """
-        captcha_image = self.__Session.get(
-            url_join(URL, f'api/captcha/2chaptcha/image/{captcha.captcha_id}')
-        ).content
+        captcha_image = self.__Session.request(method='get',
+                                               url=f'{URL}/api/captcha/2chaptcha/image/{captcha.captcha_id}').content
         url = f'{URL}/api/captcha/2chaptcha/image/{captcha.captcha_id}'
 
         return Dict({'url': url, 'binary': captcha_image})
@@ -68,9 +66,8 @@ class CaptchaHelper:
         Метод отвечает за проверку правельности решения капчи
         :return: Возвращает True/False в зависимости от праильности решения капчи
         """
-        response = Dict(self.__Session.get(
-            url_join(URL, f'api/captcha/2chaptcha/check/{captcha.captcha_id}?value={captcha.captcha_value}')
-        ).json())
+        url = f'{URL}/api/captcha/2chaptcha/check/{captcha.captcha_id}?value={captcha.captcha_value}'
+        response = Dict(self.__Session.request(method='get', url=url).json())
 
         if response.result == 1:
             return True
