@@ -1,29 +1,49 @@
-from api2ch import DvachApi, Message
-from api2ch import exceptions
+from api2ch.api import DvachApi
+from api2ch.models import Message
+from api2ch.captcha import CaptchaHelper
+from api2ch.client import ApiClient
 
-# искусственный пример пораждения ошибки ExtraFilesError(переизбыток файлов при отсутствии пасскода)
-files = ['2.jpg', '3.jpg', '2.jpg', '3.jpg', '3.jpg','2.jpg', '3.jpg', '3.jpg','2.jpg', '3.jpg']
-passcode = True
-
-if passcode and len(files) < 9:
-    print('GJ!')
-elif len(files) > 4 and not passcode:
-    # TODO в рабочем коде `print` заменить на `raise`
-    print(exceptions.ExtraFilesError(files_len = len(files), passcode = False))
-elif passcode and len(files) > 9:
-    # TODO в рабочем коде `print` заменить на `raise`
-    raise exceptions.ExtraFilesError(files_len = len(files), passcode = True)
-# конец искусственного примера
 
 api = DvachApi(board='test')
 
-helper = api.CaptchaHelper
+# искусственный пример пораждения ошибки ExtraFilesError
+'''
+files = ['2.jpg', '3.jpg', '2.jpg', '3.jpg', '3.jpg', '2.jpg', '3.jpg', '3.jpg', '2.jpg', '3.jpg']
+
+message = Message(board_id=api.board.id, thread_id=6476, comment='Abu nyasha', sage=True, files=files)
+
+print(api.send_post(message = message, captcha = True))
+
+print(api.send_post(message = message, passcode = True))
+
+'''
+api_session = ApiClient()
+
+helper = CaptchaHelper(api_session.session)
 captcha = helper.get_captcha()
 
 print(helper.get_captcha_img(captcha).url)
 captcha.set_answer(input('Answer: '))
 
-message = Message(board_id=api.board.id, thread_id=6476, comment='Abu nyasha', sage=True, files=['2.jpg', '3.jpg'])
+message = Message(board_id=api.board.id, thread_id=6476, comment='Abu nyasha',
+                  sage=True, files=['19Mb_file.webm'])
 
 if helper.check_captcha(captcha):
-    print(api.send_post(message, captcha))
+    print('OK')
+    print(api.send_post(message=message, captcha=captcha))
+else:
+    print('Wrong value')
+# искусстыенный пример для тестирования отправки файлом при наличии пасскода
+'''
+message = Message(board_id=api.board.id, thread_id=6476, comment='Abu nyasha', sage=True, files=['12Mb_file.mp4', 
+                                                                                                 '18Mb_file.mp4', 
+                                                                                                 '19Mb_file.webm'
+                                                                                                 ])
+
+print(api.send_post(message = message, passcode = True))
+
+message = Message(board_id=api.board.id, thread_id=6476, comment='Abu nyasha', sage=True, files=['75mb_file.mp4'])
+
+print(api.send_post(message = message, passcode = True))
+
+'''

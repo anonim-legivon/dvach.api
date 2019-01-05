@@ -14,7 +14,7 @@ requires = ['requests', 'addict', 'simplejson']
 setup(
     name='dvach.api',
     version=__version__,
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     packages=['api2ch'],
     package_data={'': ['LICENSE']},
     package_dir={'dvach.api': 'api2ch'},
@@ -31,7 +31,7 @@ setup(
         'Development Status :: 4 - Beta',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'License :: OSI Approved :: Apache Software License',
         'Topic :: Internet'
     ],
