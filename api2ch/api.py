@@ -1,31 +1,32 @@
 """2ch.hk API"""
 
-__all__ = ('DvachApi', 'Message', 'URL')
+__all__ = ('DvachApi', 'Message', 'CHAN_URL')
 
 import api2ch.exceptions as ex
-from .boards import *
 from .captcha import CaptchaHelper
-from .helpers import *
-from .session import *
+from .helpers import get_all_board_settings
+from .models import Message, Thread, Post
+from .client import ApiClient
+from .settings import CHAN_URL
 
 
 class DvachApi:
     """Объект DvachApi"""
 
-    _boards = {}
-
-    def __init__(self, board='b', proxies=None, headers=None):
+    def __init__(self, board='b', passcode=None, proxies=None, headers=None):
         """
         Инициализация Api
         :param board: ИД доски
         """
-        self.__Session = ApiSession(proxies=proxies, headers=headers)
-        self.__get_all_settings()
+        self.__ApiClient = ApiClient(proxies=proxies, headers=headers)
+        self.boards = get_all_board_settings(self.__ApiClient)
         self.__board = None
         self.board = board
-        self.settings = None
-        self.CaptchaHelper = CaptchaHelper(self.__Session)
+        self.CaptchaHelper = CaptchaHelper(self.__ApiClient)
         self.passcode_data = None
+
+        if passcode:
+            self.auth_passcode(passcode)
 
     @property
     def board(self):
@@ -33,23 +34,10 @@ class DvachApi:
 
     @board.setter
     def board(self, board):
-        if board in self._boards.keys():
-            self.__board = self._boards[board]
+        if board in self.boards.keys():
+            self.__board = self.boards[board]
         else:
             self.__board = None
-
-    def __get_all_settings(self):
-        all_settings = self.__Session.request(url=f'{URL}/makaba/mobile.fcgi?task=get_boards')
-
-        for key in all_settings.keys():
-            for settings in all_settings[key]:
-                self._boards[settings['id']] = Board(settings)
-
-        for board in HIDDEN_BOARDS:  # докидываем скрытых борд, на которые Абу не дает настроек
-            if board not in self._boards.keys():
-                self._boards[board] = Board(Dict({'id': board}))
-
-        return True
 
     def get_board(self, board=None):
         """
@@ -60,7 +48,8 @@ class DvachApi:
         if not (board and self.board_exist(board)):  # pragma: no cover
             board = self.board.id
 
-        threads = self.__Session.request(url=f'{URL}/{board}/threads.json').threads
+        threads = self.__ApiClient.request(
+            url=f'{CHAN_URL}/{board}/threads.json').threads
 
         return [Thread(thread) for thread in threads]
 
@@ -77,7 +66,8 @@ class DvachApi:
         if not (board and self.board_exist(board)):  # pragma: no cover
             board = self.board.id
 
-        posts = self.__Session.request(url=f'{URL}/{board}/res/{thread}.json').threads
+        posts = self.__ApiClient.request(
+            url=f'{CHAN_URL}/{board}/res/{thread}.json').threads
 
         return [Post(post) for post in posts[0].posts]
 
@@ -92,14 +82,18 @@ class DvachApi:
         if not (board and self.board_exist(board)):  # pragma: no cover
             board = self.board.id
 
-        threads = self.__Session.request(url=f'{URL}/{board}/threads.json').threads
+        threads = self.__ApiClient.request(
+            url=f'{CHAN_URL}/{board}/threads.json').threads
 
         if method == 'views':
-            threads = sorted(threads, key=lambda thread: (thread['views'], thread['score']), reverse=True)
+            threads = sorted(threads, key=lambda thread: (
+                thread['views'], thread['score']), reverse=True)
         elif method == 'score':
-            threads = sorted(threads, key=lambda thread: (thread['score'], thread['views']), reverse=True)
+            threads = sorted(threads, key=lambda thread: (
+                thread['score'], thread['views']), reverse=True)
         elif method == 'posts':
-            threads = sorted(threads, key=lambda thread: (thread['posts_count'], thread['views']), reverse=True)
+            threads = sorted(threads, key=lambda thread: (
+                thread['posts_count'], thread['views']), reverse=True)
         else:
             return []
 
@@ -110,12 +104,15 @@ class DvachApi:
         Авторизация пасскода
         :param usercode: Пасскод
         """
-        url = f'{URL}/makaba/makaba.fcgi'
+        url = f'{CHAN_URL}/makaba/makaba.fcgi'
         payload = {
             'task': 'auth',
             'usercode': usercode
         }
-        response = self.__Session.request(method='post', url=url, data=payload)
+        response = self.__ApiClient.request(
+            method='post', url=url,
+            data=payload)
+
         self.passcode_data = response.cookies['usercode_nocaptcha']
 
         return True
@@ -133,9 +130,11 @@ class DvachApi:
             # при наличии файлов- проверяем их
             if message.files != {'': ''}:
                 if len(message.files) > 8:
-                    raise ex.ExtraFilesError(files_len=len(message.files), passcode=True)
+                    raise ex.ExtraFilesError(files_len=len(message.files),
+                                             passcode=True)
                 elif message.filesize.size > 60:
-                    raise ex.FileSizeError(files_size=message.filesize.size, passcode=True)
+                    raise ex.FileSizeError(files_size=message.filesize.size,
+                                           passcode=True)
 
         elif captcha:
             captcha_payload = {
@@ -147,35 +146,39 @@ class DvachApi:
             # при наличии файлов проверяем их
             if message.files != {'': ''}:
                 if len(message.files) > 4:
-                    raise ex.ExtraFilesError(files_len=len(message.files), passcode=False)
+                    raise ex.ExtraFilesError(files_len=len(message.files),
+                                             passcode=False)
                 elif message.filesize.size > 20:
-                    raise ex.FileSizeError(files_size=message.filesize.size, passcode=False)
+                    raise ex.FileSizeError(files_size=message.filesize.size,
+                                           passcode=False)
         else:
             raise ex.AuthRequiredError()
 
         try:
-            response = self.__Session.request(method='post', url=f'{URL}/makaba/posting.fcgi',
-                                              data=message.payload,
-                                              files=message.files)
+            response = self.__ApiClient.request(
+                method='post',
+                url=f'{CHAN_URL}/makaba/posting.fcgi',
+                data=message.payload,
+                files=message.files)
         except Exception as e:
             print('Error send post: {msg}'.format(msg=e))
             return False
         else:
             return response
 
-    def find(self, board=None, thread=None, patterns=None, antipatterns=None):
+    def find(self, board=None, thread=None, patterns=None, anti_patterns=None):
         """
         Поиск тредов по заданным строкам в шапке
-        :param board: ИД борды на которой нужно искать тред по заданным строкам в ОП-посте
-        :param thread: ИД треда или объект типа Thread в постах которого нужно провести поиск
+        :param board: ИД борды на которой искать тред по словам в ОП-посте
+        :param thread: ИД треда или объект типа Thread для поиска
         :param patterns: Список фраз для поиска в шапке
-        :param antipatterns: Список фраз которые не должны всречаться в шапке
+        :param anti_patterns: Список фраз которые не должны всречаться в шапке
         :return: Список тредов удовлетворяющих условиям
         """
         if patterns is None:
             patterns = []
-        if antipatterns is None:
-            antipatterns = []
+        if anti_patterns is None:
+            anti_patterns = []
 
         if not (board and self.board_exist(board)):  # pragma: no cover
             board = self.board.id
@@ -186,13 +189,22 @@ class DvachApi:
         # TODO: Тут покрасивее сделать надо
         if thread:
             posts = self.get_thread(board=board, thread=thread)
-            matched = [post for post in posts if any(subs in post.comment.lower() for subs in patterns) and all(
-                subs not in post.comment.lower for subs in antipatterns)]
+            matched = [
+                post for post in posts if
+                any(subs in post.comment.lower() for subs in patterns) and
+                all(subs not in post.comment.lower for subs in anti_patterns)
+            ]
         else:
             threads = self.get_board(board=board)
-            matched = [thread for thread in threads if
-                       any(subs in thread.post.comment.lower() for subs in patterns) and all(
-                           subs not in thread.post.comment.lower() for subs in antipatterns)]
+            matched = [
+                thread for thread in threads if
+                any(subs in thread.post.comment.lower() for subs in
+                    patterns) and
+                all(
+                    subs not in thread.post.comment.lower() for subs in
+                    anti_patterns
+                )
+            ]
 
         return matched
 
@@ -201,7 +213,7 @@ class DvachApi:
         Установка заголовка запросов на лету
         :param headers:
         """
-        self.__Session.update_headers(headers)
+        self.__ApiClient.update_headers(headers)
         return True
 
     def set_proxies(self, proxies=None):
@@ -209,7 +221,7 @@ class DvachApi:
         Установка прокси на лету
         :param proxies:
         """
-        self.__Session.update_proxies(proxies)
+        self.__ApiClient.update_proxies(proxies)
         return True
 
     def board_exist(self, board):
@@ -218,7 +230,7 @@ class DvachApi:
         :param board: ИД доски. Например 'b'
         :return: boolean
         """
-        return board in self._boards.keys()
+        return board in self.boards.keys()
 
     def __repr__(self):
         return f'<Api: {self.board.id}>'

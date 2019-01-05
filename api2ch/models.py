@@ -9,8 +9,10 @@ class Board:
     __slots__ = ('bump_limit', 'category', 'default_name', 'enable_dices',
                  'enable_flags', 'enable_icons', 'enable_likes',
                  'enable_names', 'enable_oekaki', 'enable_posting',
-                 'enable_sage', 'enable_shield', 'enable_subject', 'enable_thread_tags',
-                 'enable_trips', 'icons', 'id', 'name', 'pages', 'sage', 'tripcodes')
+                 'enable_sage', 'enable_shield', 'enable_subject',
+                 'enable_thread_tags',
+                 'enable_trips', 'icons', 'id', 'name', 'pages', 'sage',
+                 'tripcodes')
 
     def __init__(self, settings):
         """
@@ -45,6 +47,7 @@ class Board:
 
 class Thread:
     """Thread object"""
+
     __slots__ = ('reply_count', 'post', 'num')
 
     def __init__(self, thread):
@@ -130,7 +133,8 @@ class Message:
     """Message object"""
 
     # формирование пайлоада сообщения
-    def __init__(self, board_id, thread_id, comment='', email='', subject='', name='', sage=False, files=None):
+    def __init__(self, board_id, thread_id, comment='', email='', subject='',
+                 name='', sage=False, files=None):
         """
         Офрмируется пайлоад, добавляются файлы при наличии
         :param board_id: Доска
@@ -158,20 +162,22 @@ class Message:
         self.files = {}
 
         # Добавляем файл при наличии
-        if files and 0 < len(files) <= 8:
-            # а переменной files по ключу filesize - хранится размер файлов для передачи
-            self.filesize = Dict({'size': 0})
+        if files and len(files) <= 8:
+            # в переменной files по ключу filesize хранится размер файлов
+            self.filesize = {'size': 0}
             try:
                 for file_name in files:
                     with open(file_name, 'rb') as file:
                         self.files[file.name] = file.read()
-                    # определяем размер файла и добавляем его к общему объёму файлов
-                    self.filesize.size += os.path.getsize(file_name) / 1000000
+                    # определяем размер файла и добавляем его к общему объёму
+                    self.filesize['size'] += os.path.getsize(
+                        file_name) / 1000000
             except Exception as e:
                 print("IO error:", e)
         else:
             self.files = {'': ''}
 
     def __repr__(self):
-        return f'<Message: {self.payload}, Files: {self.files.keys() if self.files else []}, ' \
+        return f'<Message: {self.payload}, ' \
+               f'Files: {self.files.keys() if self.files else []}, ' \
                f'File_Size: {self.filesize if self.files else []}>'

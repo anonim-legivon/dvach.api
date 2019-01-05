@@ -4,20 +4,23 @@ class ChanApiException(Exception):
 
 class ExtraFilesError(ChanApiException):
     def __init__(self, files_len, passcode):
-        ChanApiException.__init__(self, f"""
-        \nПораждается, при передаче слишком большого числа файлов.
-        Вы передаёте - {files_len} файлов, пасскод - {'присутствует' if passcode else 'отсутствует'}.
+        passcode_status = 'присутствует' if passcode else 'отсутствует'
+        super().__init__(self, f"""
+        Превышено максимальное количество файлов.
+        Вы передаёте - {files_len} файлов, пасскод - {passcode_status}.
         Максимальное количество файлов с пасскодом - 8, а без него - 4.""")
 
 
 class FileSizeError(ChanApiException):
     def __init__(self, files_size, passcode):
-        ChanApiException.__init__(self, f"""
-        \nПораждается, при превышении лимита размера файла.
-        Общий размер файлов - {files_size} , пасскод - {'присутствует' if passcode else 'отсутствует'}.
-        Максимальное размер файлов с пасскодом - 40-60 Mb, а без него - 20 Mb.""")
+        passcode_status = 'присутствует' if passcode else 'отсутствует'
+        super().__init__(self, f"""
+        Превышен лимита размера файла.
+        Общий размер файлов - {files_size} , пасскод - {passcode_status}.
+        Максимальное размер файлов с пасскодом - 40-60 Mb, без него - 20 Mb.""")
 
 
 class AuthRequiredError(ChanApiException):
     def __init__(self):
-        ChanApiException.__init__(self, """\nПораждается, при отсутствии капчи и пасскода. Или их невалидности.""")
+        super().__init__(self,
+                         """Отсутствует или невалидны капча или пасскод.""")
