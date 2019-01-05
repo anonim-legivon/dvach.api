@@ -2,19 +2,25 @@ from os import path
 
 from setuptools import setup
 
-from api2ch import __author__, __version__
-
 here = path.abspath(path.dirname(__file__))
 
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
-requires = ['requests', 'addict', 'simplejson']
+__author__ = 'anonim-legivon'
+
+__version__ = '1.0.0'
+
+requires = [
+            'requests==2.21.0',
+            'addict==2.2.0',
+            'simplejson==3.16.0'
+           ]
 
 setup(
     name='dvach.api',
     version=__version__,
-    python_requires='>=3.7',
+    python_requires='>=3.6',
     packages=['api2ch'],
     package_data={'': ['LICENSE']},
     package_dir={'dvach.api': 'api2ch'},
@@ -31,7 +37,7 @@ setup(
         'Development Status :: 4 - Beta',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.6',
         'License :: OSI Approved :: Apache Software License',
         'Topic :: Internet'
     ],
