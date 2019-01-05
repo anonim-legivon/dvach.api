@@ -143,6 +143,7 @@ class DvachApi:
                 '2chaptcha_value': captcha.captcha_value
             }
             message.payload.update(captcha_payload)
+
             # при наличии файлов проверяем их
             if message.files != {'': ''}:
                 if len(message.files) > 4:
@@ -151,6 +152,7 @@ class DvachApi:
                 elif message.filesize.size > 20:
                     raise ex.FileSizeError(files_size=message.filesize.size,
                                            passcode=False)
+
         else:
             raise ex.AuthRequiredError()
 
@@ -171,6 +173,7 @@ class DvachApi:
         Поиск тредов по заданным строкам в шапке
         :param board: ИД борды на которой искать тред по словам в ОП-посте
         :param thread: ИД треда или объект типа Thread для поиска
+
         :param patterns: Список фраз для поиска в шапке
         :param anti_patterns: Список фраз которые не должны всречаться в шапке
         :return: Список тредов удовлетворяющих условиям

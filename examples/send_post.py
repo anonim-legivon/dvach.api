@@ -3,6 +3,7 @@ from api2ch.models import Message
 from api2ch.captcha import CaptchaHelper
 from api2ch.client import ApiClient
 
+
 api = DvachApi(board='test')
 
 # искусственный пример пораждения ошибки ExtraFilesError
