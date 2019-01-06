@@ -12,10 +12,10 @@ __author__ = 'anonim-legivon'
 __version__ = '1.0.0'
 
 requires = [
-            'requests==2.21.0',
-            'addict==2.2.0',
-            'simplejson==3.16.0'
-           ]
+    'requests==2.21.0',
+    'addict==2.2.0',
+    'simplejson==3.16.0'
+]
 
 setup(
     name='dvach.api',
@@ -38,6 +38,7 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'License :: OSI Approved :: Apache Software License',
         'Topic :: Internet'
     ],
